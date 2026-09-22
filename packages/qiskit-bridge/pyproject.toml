@@ -1,0 +1,21 @@
+[project]
+name = "qiskit-bridge"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = [
+    "qiskit>=1.0.0",
+    "qiskit-aer>=0.14.0",
+    "numpy>=1.26.0",
+    "msgpack>=1.0.7",
+    "pyzmq>=25.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0.0"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["algorithms", "bridge"]

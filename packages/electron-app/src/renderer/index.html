@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Quantum Lab</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../../node_modules/three/build/three.module.js",
+      "three/addons/": "../../node_modules/three/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <div id="app">
+    <header class="appbar">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="16" cy="16" r="3" fill="#8052ff"/>
+          <g stroke="#8052ff" stroke-width="1.4" fill="none">
+            <ellipse cx="16" cy="16" rx="13" ry="5.5"/>
+            <ellipse cx="16" cy="16" rx="13" ry="5.5" transform="rotate(60 16 16)"/>
+            <ellipse cx="16" cy="16" rx="13" ry="5.5" transform="rotate(120 16 16)"/>
+          </g>
+        </svg>
+        <span class="name">QUANTUM&nbsp;LAB</span>
+        <span class="tag">Algorithm Workbench</span>
+      </div>
+      <div class="spacer"></div>
+      <span class="chip" id="backendChip">C++ · Eigen3 · ZeroMQ</span>
+      <span class="chip"><span class="led" id="engineLed"></span><span id="engineText">conectando…</span></span>
+    </header>
+
+    <aside class="rail-left" id="railLeft"></aside>
+
+    <main class="stage">
+      <canvas id="viewport"></canvas>
+      <div class="hud" id="hud">
+        <div class="htitle" id="hudTitle">Grover</div>
+        <div class="hsub" id="hudSub">búsqueda cuántica</div>
+        <div class="step-pills" id="hudPills"></div>
+      </div>
+      <div class="playback" id="playback"></div>
+      <div class="hint">Arrastra para rotar · rueda para zoom</div>
+      <div class="legend" id="legend"></div>
+    </main>
+
+    <aside class="rail-right" id="railRight"></aside>
+
+    <footer class="statusbar" id="statusbar"></footer>
+  </div>
+  <script type="module" src="scene.js"></script>
+</body>
+</html>

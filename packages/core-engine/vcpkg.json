@@ -1,0 +1,12 @@
+{
+  "name": "quantum-engine",
+  "version": "0.1.0",
+  "dependencies": [
+    "zeromq",
+    "cppzmq",
+    "msgpack-cxx",
+    "eigen3",
+    "nlohmann-json",
+    "gtest"
+  ]
+}

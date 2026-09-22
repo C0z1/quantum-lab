@@ -1,0 +1,24 @@
+# C++
+packages/core-engine/build/
+
+# Python
+**/.venv/
+**/__pycache__/
+**/*.egg-info/
+**/.pytest_cache/
+*.pyc
+
+# Node / Electron
+node_modules/
+packages/electron-app/dist/
+
+# Binario del motor colocado por el CI (se conserva el .gitkeep)
+packages/electron-app/engine-bin/*
+!packages/electron-app/engine-bin/.gitkeep
+
+# ZeroMQ ipc sockets (legado)
+/tmp/quantum-lab-*
+
+# OS
+.DS_Store
+Thumbs.db

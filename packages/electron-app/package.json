@@ -1,0 +1,46 @@
+{
+  "name": "quantum-lab",
+  "version": "1.0.0",
+  "description": "Quantum Lab — visualizador 3D interactivo de algoritmos cuánticos (Grover, Teletransportación, Shor)",
+  "author": "C0z1",
+  "license": "MIT",
+  "main": "src/main/index.js",
+  "scripts": {
+    "dev": "electron .",
+    "start": "electron .",
+    "dist": "electron-builder",
+    "dist:win": "electron-builder --win nsis"
+  },
+  "dependencies": {
+    "msgpackr": "^1.12.1",
+    "three": "^0.164.1",
+    "zeromq": "^6.8.0"
+  },
+  "devDependencies": {
+    "concurrently": "^8.0.0",
+    "electron": "^30.5.1",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.quantumlab.app",
+    "productName": "Quantum Lab",
+    "asar": false,
+    "directories": { "output": "dist" },
+    "files": [ "src/**/*", "package.json", "node_modules/**/*" ],
+    "extraResources": [
+      { "from": "engine-bin", "to": "engine", "filter": [ "**/*" ] }
+    ],
+    "win": {
+      "target": [ "nsis" ],
+      "artifactName": "QuantumLab-Setup-${version}.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "Quantum Lab"
+    },
+    "linux": { "target": [ "AppImage" ], "category": "Science" },
+    "mac": { "target": [ "dmg" ], "category": "public.app-category.education" }
+  }
+}
