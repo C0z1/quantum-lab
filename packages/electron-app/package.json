@@ -9,7 +9,10 @@
     "dev": "electron .",
     "start": "electron .",
     "dist": "electron-builder",
-    "dist:win": "electron-builder --win nsis"
+    "dist:win": "electron-builder --win nsis",
+    "lint": "eslint src",
+    "format": "prettier --write \"src/**/*.{js,css,html}\"",
+    "format:check": "prettier --check \"src/**/*.{js,css,html}\""
   },
   "dependencies": {
     "msgpackr": "^1.12.1",
@@ -17,21 +20,39 @@
     "zeromq": "^6.8.0"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "concurrently": "^8.0.0",
     "electron": "^30.5.1",
-    "electron-builder": "^24.0.0"
+    "electron-builder": "^24.0.0",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "prettier": "^3.9.8"
   },
   "build": {
     "appId": "com.quantumlab.app",
     "productName": "Quantum Lab",
     "asar": false,
-    "directories": { "output": "dist" },
-    "files": [ "src/**/*", "package.json", "node_modules/**/*" ],
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "node_modules/**/*"
+    ],
     "extraResources": [
-      { "from": "engine-bin", "to": "engine", "filter": [ "**/*" ] }
+      {
+        "from": "engine-bin",
+        "to": "engine",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "win": {
-      "target": [ "nsis" ],
+      "target": [
+        "nsis"
+      ],
       "artifactName": "QuantumLab-Setup-${version}.exe"
     },
     "nsis": {
@@ -40,7 +61,17 @@
       "allowToChangeInstallationDirectory": true,
       "shortcutName": "Quantum Lab"
     },
-    "linux": { "target": [ "AppImage" ], "category": "Science" },
-    "mac": { "target": [ "dmg" ], "category": "public.app-category.education" }
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Science"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.education"
+    }
   }
 }

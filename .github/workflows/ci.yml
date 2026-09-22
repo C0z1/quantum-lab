@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  cpp-tests:
+    name: C++ engine · tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config \
+            libeigen3-dev libzmq3-dev cppzmq-dev libmsgpack-dev nlohmann-json3-dev libgtest-dev
+      - name: Build
+        run: |
+          cmake -B build -S packages/core-engine -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc)
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+      - name: clang-format check
+        run: |
+          clang-format --dry-run --Werror packages/core-engine/src/*.cpp \
+            packages/core-engine/src/*.h packages/core-engine/tests/*.cpp
+
+  python-tests:
+    name: Qiskit bridge · tests + ruff
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install "qiskit>=1.0.0" "qiskit-aer>=0.14.0" "numpy>=1.26.0" \
+            "msgpack>=1.0.7" "pyzmq>=25.0.0" pytest ruff
+      - name: Ruff (lint + format check)
+        working-directory: packages/qiskit-bridge
+        run: |
+          ruff check .
+          ruff format --check .
+      - name: Pytest
+        working-directory: packages/qiskit-bridge
+        run: python -m pytest tests/ -v
+
+  js-lint:
+    name: Electron app · format + lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install
+        working-directory: packages/electron-app
+        run: npm install --no-audit --no-fund
+      - name: Prettier check
+        working-directory: packages/electron-app
+        run: npx prettier --check "src/**/*.{js,css,html}"
+      - name: ESLint (advisory)
+        working-directory: packages/electron-app
+        run: npx eslint src || true

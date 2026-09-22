@@ -3,20 +3,28 @@
 // una API para que scene.js lo alimente. No toca Three.js ni el IPC.
 
 const ICONS = {
-  grover: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>',
-  teleport: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 12h7" stroke-dasharray="2 2"/></svg>',
+  grover:
+    '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5"/></svg>',
+  teleport:
+    '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 12h7" stroke-dasharray="2 2"/></svg>',
   shor: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m5 14v-7m5 7V8"/></svg>',
 };
 
 const ALGOS = {
   grover: { name: 'Grover', desc: 'Búsqueda cuántica', hudSub: 'amplificación de amplitud' },
-  teleport: { name: 'Teletransportación', desc: 'Transferencia de estado', hudSub: 'medición diferida' },
+  teleport: {
+    name: 'Teletransportación',
+    desc: 'Transferencia de estado',
+    hudSub: 'medición diferida',
+  },
   shor: { name: 'Shor', desc: 'Factorización', hudSub: 'estimación de fase (QPE)' },
 };
 
 export class UIController {
   constructor({ onRun, onReset, onTab, onPlay, onStep, onSeek, onRestart, onSpeed }) {
-    this.onRun = onRun; this.onReset = onReset; this.onTab = onTab;
+    this.onRun = onRun;
+    this.onReset = onReset;
+    this.onTab = onTab;
     this.pb = { onPlay, onStep, onSeek, onRestart, onSpeed };
     this.algo = 'grover';
     this.$ = (id) => document.getElementById(id);
@@ -51,41 +59,57 @@ export class UIController {
     this.$('pb_track').addEventListener('click', (e) => {
       const r = e.currentTarget.getBoundingClientRect();
       const total = this._pbTotal || 1;
-      const idx = Math.min(total - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * total)));
+      const idx = Math.min(
+        total - 1,
+        Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * total))
+      );
       this.pb.onSeek(idx);
     });
     this.showPlayback(false);
   }
 
-  showPlayback(show) { this.$('playback').style.display = show ? 'flex' : 'none'; }
+  showPlayback(show) {
+    this.$('playback').style.display = show ? 'flex' : 'none';
+  }
 
   setPlayback({ playing, cursor, total, speed }) {
     if (total !== undefined) {
       this._pbTotal = total;
       const track = this.$('pb_track');
-      track.innerHTML = Array.from({ length: total }, (_, i) =>
-        `<i class="seg ${i <= cursor ? 'on' : ''} ${i === cursor ? 'cur' : ''}"></i>`).join('');
+      track.innerHTML = Array.from(
+        { length: total },
+        (_, i) => `<i class="seg ${i <= cursor ? 'on' : ''} ${i === cursor ? 'cur' : ''}"></i>`
+      ).join('');
     } else if (cursor !== undefined) {
-      this.$('pb_track').querySelectorAll('.seg').forEach((s, i) => {
-        s.classList.toggle('on', i <= cursor); s.classList.toggle('cur', i === cursor);
-      });
+      this.$('pb_track')
+        .querySelectorAll('.seg')
+        .forEach((s, i) => {
+          s.classList.toggle('on', i <= cursor);
+          s.classList.toggle('cur', i === cursor);
+        });
     }
     if (cursor !== undefined && this._pbTotal != null)
       this.$('pb_count').textContent = `${Math.max(0, cursor + 1)} / ${this._pbTotal}`;
     if (playing !== undefined) {
       const ic = this.$('pb_play_icon');
-      ic.innerHTML = playing ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>' : '<path d="M8 5v14l11-7z"/>';
+      ic.innerHTML = playing
+        ? '<path d="M6 5h4v14H6zM14 5h4v14h-4z"/>'
+        : '<path d="M8 5v14l11-7z"/>';
     }
     if (speed !== undefined) this.$('pb_speed').textContent = speed + '×';
   }
 
   // ---------------- LEFT RAIL ----------------
   _buildLeft() {
-    const nav = Object.entries(ALGOS).map(([k, a]) => `
+    const nav = Object.entries(ALGOS)
+      .map(
+        ([k, a]) => `
       <button class="item ${k === 'grover' ? 'active' : ''}" data-algo="${k}">
         ${ICONS[k]}
         <span class="txt"><span class="t">${a.name}</span><span class="d">${a.desc}</span></span>
-      </button>`).join('');
+      </button>`
+      )
+      .join('');
 
     this.$('railLeft').innerHTML = `
       <div class="card">
@@ -107,8 +131,9 @@ export class UIController {
         </div>
       </div>`;
 
-    this.$('railLeft').querySelectorAll('.nav .item').forEach((b) =>
-      b.addEventListener('click', () => this._selectTab(b.dataset.algo)));
+    this.$('railLeft')
+      .querySelectorAll('.nav .item')
+      .forEach((b) => b.addEventListener('click', () => this._selectTab(b.dataset.algo)));
     this.$('run').addEventListener('click', () => this.onRun(this.algo, this.getParams()));
     this.$('reset').addEventListener('click', () => this.onReset());
   }
@@ -121,7 +146,8 @@ export class UIController {
         <div class="field"><label>Estado objetivo <b id="g_tgtV">5</b></label><input id="g_tgt" type="range" min="0" max="7" value="5"></div>
         <div class="field"><label>Iteraciones (0=óptimo) <b id="g_itV">2</b></label><input id="g_it" type="range" min="0" max="30" value="2"></div>`;
       const sync = () => {
-        const n = +this.$('g_nq').value, maxS = (1 << n) - 1;
+        const n = +this.$('g_nq').value,
+          maxS = (1 << n) - 1;
         this.$('g_tgt').max = String(maxS);
         if (+this.$('g_tgt').value > maxS) this.$('g_tgt').value = String(maxS);
         this.$('g_nqV').textContent = n;
@@ -199,8 +225,9 @@ export class UIController {
   _selectTab(algo) {
     if (algo === this.algo) return;
     this.algo = algo;
-    this.$('railLeft').querySelectorAll('.nav .item').forEach((b) =>
-      b.classList.toggle('active', b.dataset.algo === algo));
+    this.$('railLeft')
+      .querySelectorAll('.nav .item')
+      .forEach((b) => b.classList.toggle('active', b.dataset.algo === algo));
     this._buildParams(algo);
     this.setHud(algo);
     this.onTab(algo, this.getParams());
@@ -208,37 +235,66 @@ export class UIController {
 
   getParams() {
     if (this.algo === 'grover')
-      return { nQubits: +this.$('g_nq').value, targetState: +this.$('g_tgt').value, iterations: +this.$('g_it').value };
+      return {
+        nQubits: +this.$('g_nq').value,
+        targetState: +this.$('g_tgt').value,
+        iterations: +this.$('g_it').value,
+      };
     if (this.algo === 'teleport')
-      return { theta: (+this.$('t_th').value) * Math.PI / 180, phi: (+this.$('t_ph').value) * Math.PI / 180 };
+      return {
+        theta: (+this.$('t_th').value * Math.PI) / 180,
+        phi: (+this.$('t_ph').value * Math.PI) / 180,
+      };
     return { N: +this.$('s_N').value, a: +this.$('s_a').value };
   }
 
   // ---------------- API para scene.js ----------------
   setEngine(connected, latency) {
-    const led = this.$('engineLed'), txt = this.$('engineText');
+    const led = this.$('engineLed'),
+      txt = this.$('engineText');
     led.className = 'led ' + (connected ? 'on' : 'err');
-    txt.textContent = connected ? (latency != null ? `motor online · ${latency} ms` : 'motor online') : 'sin conexión';
+    txt.textContent = connected
+      ? latency != null
+        ? `motor online · ${latency} ms`
+        : 'motor online'
+      : 'sin conexión';
   }
 
   setMetrics(tiles) {
-    this.$('metrics').innerHTML = tiles.map((t) =>
-      `<div class="metric"><div class="k">${t.k}</div><div class="v ${t.accent ? 'accent' : ''} ${t.small ? 'small' : ''}">${t.v}</div></div>`).join('');
+    this.$('metrics').innerHTML = tiles
+      .map(
+        (t) =>
+          `<div class="metric"><div class="k">${t.k}</div><div class="v ${t.accent ? 'accent' : ''} ${t.small ? 'small' : ''}">${t.v}</div></div>`
+      )
+      .join('');
   }
 
   setStateTable(rows) {
     const body = this.$('stateTable').querySelector('tbody');
-    if (!rows || !rows.length) { body.innerHTML = ''; return; }
+    if (!rows || !rows.length) {
+      body.innerHTML = '';
+      return;
+    }
     const head = `<tr><th>estado</th><th>Re</th><th>Im</th><th>P</th><th>&nbsp;</th></tr>`;
-    body.innerHTML = head + rows.map((r) => `
+    body.innerHTML =
+      head +
+      rows
+        .map(
+          (r) => `
       <tr class="${r.hl ? 'hl' : ''}">
         <td>|${r.label}⟩</td><td>${r.re}</td><td>${r.im}</td><td>${(r.prob * 100).toFixed(1)}%</td>
         <td><div class="pbar"><i style="width:${Math.max(1, r.prob * 100).toFixed(1)}%"></i></div></td>
-      </tr>`).join('');
+      </tr>`
+        )
+        .join('');
   }
 
-  setAnalysisTitle(t) { this.$('analysisTitle').textContent = t; }
-  showAnalysis(show) { this.$('analysisCard').style.display = show ? '' : 'none'; }
+  setAnalysisTitle(t) {
+    this.$('analysisTitle').textContent = t;
+  }
+  showAnalysis(show) {
+    this.$('analysisCard').style.display = show ? '' : 'none';
+  }
 
   setStatus({ qubits, dim, frames, dt } = {}) {
     if (qubits !== undefined) this.$('sb_q').textContent = qubits;
@@ -251,14 +307,17 @@ export class UIController {
     const a = ALGOS[algo];
     this.$('hudTitle').textContent = a.name;
     this.$('hudSub').textContent = a.hudSub;
-    if (pills) this.$('hudPills').innerHTML = pills.map((p) =>
-      `<span class="pill ${p.on ? 'on' : ''}">${p.label}</span>`).join('');
+    if (pills)
+      this.$('hudPills').innerHTML = pills
+        .map((p) => `<span class="pill ${p.on ? 'on' : ''}">${p.label}</span>`)
+        .join('');
     else this.$('hudPills').innerHTML = '';
   }
 
   setLegend(items) {
-    this.$('legend').innerHTML = (items || []).map((i) =>
-      `<span><i style="background:${i.color}"></i>${i.label}</span>`).join('');
+    this.$('legend').innerHTML = (items || [])
+      .map((i) => `<span><i style="background:${i.color}"></i>${i.label}</span>`)
+      .join('');
   }
 
   log(msg, type = '') {

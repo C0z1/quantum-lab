@@ -4,13 +4,11 @@
 namespace teleport {
 
 static Eigen::Vector3d idealBloch(double theta, double phi) {
-    return { std::sin(theta) * std::cos(phi),
-             std::sin(theta) * std::sin(phi),
-             std::cos(theta) };
+    return {std::sin(theta) * std::cos(phi), std::sin(theta) * std::sin(phi), std::cos(theta)};
 }
 
 Result run(double theta, double phi, const FrameCallback& on_frame) {
-    QuantumStateVector sv(3); // 0 = fuente |psi>, 1 = Alice, 2 = Bob/destino
+    QuantumStateVector sv(3);  // 0 = fuente |psi>, 1 = Alice, 2 = Bob/destino
 
     // Paso 0: preparar |psi> en el qubit 0.
     sv.prepareSingleQubit(0, theta, phi);
@@ -27,8 +25,8 @@ Result run(double theta, double phi, const FrameCallback& on_frame) {
     on_frame(2, false, sv);
 
     // Paso 3: correcciones diferidas (equivalen a las condicionadas por medida).
-    sv.applyCNOT(1, 2); // corrige bit X segun qubit 1
-    sv.applyCZ(0, 2);   // corrige fase Z segun qubit 0
+    sv.applyCNOT(1, 2);  // corrige bit X segun qubit 1
+    sv.applyCZ(0, 2);    // corrige fase Z segun qubit 0
     on_frame(3, true, sv);
 
     Result r;
@@ -38,4 +36,4 @@ Result run(double theta, double phi, const FrameCallback& on_frame) {
     return r;
 }
 
-} // namespace teleport
+}  // namespace teleport

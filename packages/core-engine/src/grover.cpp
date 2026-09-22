@@ -12,8 +12,7 @@ int optimalIterations(int n_qubits) {
     return it < 1 ? 1 : it;
 }
 
-int run(int n_qubits, int target_state, int iterations,
-        const FrameCallback& on_frame) {
+int run(int n_qubits, int target_state, int iterations, const FrameCallback& on_frame) {
     QuantumStateVector sv(n_qubits);
 
     if (target_state < 0 || target_state >= sv.dim())
@@ -28,13 +27,13 @@ int run(int n_qubits, int target_state, int iterations,
 
     // 4. Iteraciones de Grover.
     for (int i = 1; i <= iters; ++i) {
-        sv.applyOracle(target_state); // a. inversion de fase del objetivo
-        sv.applyDiffuser();           // b. amplificacion de amplitud
+        sv.applyOracle(target_state);  // a. inversion de fase del objetivo
+        sv.applyDiffuser();            // b. amplificacion de amplitud
         const bool is_final = (i == iters);
-        on_frame(i, is_final, sv);    // c. publicar frame
+        on_frame(i, is_final, sv);  // c. publicar frame
     }
 
     return iters;
 }
 
-} // namespace grover
+}  // namespace grover

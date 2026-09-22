@@ -10,11 +10,11 @@ namespace gates {
 
 using Cd = std::complex<double>;
 
-Eigen::Matrix2cd hadamard();          // H = 1/sqrt2 [[1,1],[1,-1]]
-Eigen::Matrix2cd pauliX();            // X = [[0,1],[1,0]]
-Eigen::Matrix2cd pauliY();            // Y = [[0,-i],[i,0]]
-Eigen::Matrix2cd pauliZ();            // Z = [[1,0],[0,-1]]
-Eigen::Matrix2cd phase(double theta); // R(theta) = [[1,0],[0,e^{i theta}]]
-Eigen::Matrix4cd cnot();              // CNOT (control = qubit alto)
+Eigen::Matrix2cd hadamard();           // H = 1/sqrt2 [[1,1],[1,-1]]
+Eigen::Matrix2cd pauliX();             // X = [[0,1],[1,0]]
+Eigen::Matrix2cd pauliY();             // Y = [[0,-i],[i,0]]
+Eigen::Matrix2cd pauliZ();             // Z = [[1,0],[0,-1]]
+Eigen::Matrix2cd phase(double theta);  // R(theta) = [[1,0],[0,e^{i theta}]]
+Eigen::Matrix4cd cnot();               // CNOT (control = qubit alto)
 
-} // namespace gates
+}  // namespace gates

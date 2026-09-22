@@ -4,6 +4,7 @@ Mismo circuito unitario que el motor C++: las correcciones X/Z se implementan
 como CNOT/CZ controladas, de modo que el qubit destino (2) recupera |psi>.
 Convencion little-endian (qubit 0 = LSB), identica al motor C++.
 """
+
 from __future__ import annotations
 
 import numpy as np
@@ -61,9 +62,7 @@ def run_teleportation(theta: float, phi: float) -> dict:
     qc.save_statevector()
     sv = np.asarray(sim.run(transpile(qc, sim)).result().get_statevector().data)
 
-    source = np.array([np.sin(theta) * np.cos(phi),
-                       np.sin(theta) * np.sin(phi),
-                       np.cos(theta)])
+    source = np.array([np.sin(theta) * np.cos(phi), np.sin(theta) * np.sin(phi), np.cos(theta)])
     dest = _bloch_of_qubit(sv, 2, 3)
     fidelity = 0.5 * (1.0 + float(np.dot(source, dest)))
     return {

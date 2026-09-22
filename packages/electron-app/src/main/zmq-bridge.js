@@ -7,13 +7,16 @@ const { Request, Subscriber } = require('zeromq');
 const { unpack } = require('msgpackr');
 const { EventEmitter } = require('events');
 
-const CMD_ENDPOINT = process.env.QL_CMD_ENDPOINT || 'tcp://127.0.0.1:5770';
-const STREAM_ENDPOINT = process.env.QL_STREAM_ENDPOINT || 'tcp://127.0.0.1:5771';
+const DEFAULT_CMD = process.env.QL_CMD_ENDPOINT || 'tcp://127.0.0.1:5770';
+const DEFAULT_STREAM = process.env.QL_STREAM_ENDPOINT || 'tcp://127.0.0.1:5771';
 const STREAM_TOPIC = 'statevec';
 
 class QuantumBridge extends EventEmitter {
-  constructor() {
+  // endpoints: { cmd, stream } — si se omiten, usa env/defaults.
+  constructor(endpoints = {}) {
     super();
+    this._cmdEndpoint = endpoints.cmd || DEFAULT_CMD;
+    this._streamEndpoint = endpoints.stream || DEFAULT_STREAM;
     this._req = new Request();
     this._req.receiveTimeout = 5000; // §8: ZMQ_RCVTIMEO = 5000ms
     this._sub = new Subscriber();
@@ -22,8 +25,9 @@ class QuantumBridge extends EventEmitter {
   }
 
   async connect() {
-    this._req.connect(CMD_ENDPOINT);
-    this._sub.connect(STREAM_ENDPOINT);
+    // ZeroMQ reconecta automáticamente a estos endpoints si el motor se reinicia.
+    this._req.connect(this._cmdEndpoint);
+    this._sub.connect(this._streamEndpoint);
     this._sub.subscribe(STREAM_TOPIC);
     this._connected = true;
     this._running = true;
@@ -71,10 +75,14 @@ class QuantumBridge extends EventEmitter {
   disconnect() {
     this._running = false;
     this._connected = false;
-    try { this._sub.close(); } catch (_) {}
-    try { this._req.close(); } catch (_) {}
+    try {
+      this._sub.close();
+    } catch (_) {}
+    try {
+      this._req.close();
+    } catch (_) {}
     this.emit('status', { connected: false });
   }
 }
 
-module.exports = { QuantumBridge, CMD_ENDPOINT, STREAM_ENDPOINT };
+module.exports = { QuantumBridge, DEFAULT_CMD, DEFAULT_STREAM };

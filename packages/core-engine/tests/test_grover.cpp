@@ -6,9 +6,7 @@
 static QuantumStateVector runGroverFinal(int n, int target, int iters) {
     QuantumStateVector last(n);
     grover::run(n, target, iters,
-        [&](int /*it*/, bool /*final*/, const QuantumStateVector& sv) {
-            last = sv;
-        });
+                [&](int /*it*/, bool /*final*/, const QuantumStateVector& sv) { last = sv; });
     return last;
 }
 

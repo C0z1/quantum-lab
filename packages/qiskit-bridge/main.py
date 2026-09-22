@@ -6,14 +6,15 @@ stdout (JSON, una linea por resultado). stderr para logs de depuracion.
 El motor C++ (zmq_server) lanza este proceso y le pasa comandos VALIDATE_GROVER
 tras cada ejecucion para comparar resultados (§3.2).
 """
+
 from __future__ import annotations
 
 import json
 import sys
 
 from algorithms.grover import run_grover
-from algorithms.teleportation import run_teleportation
 from algorithms.shor import run_shor
+from algorithms.teleportation import run_teleportation
 
 
 def handle(cmd: dict) -> dict:
@@ -27,8 +28,7 @@ def handle(cmd: dict) -> dict:
         )
         return {"status": "OK", "type": "GROVER_RESULT", "result": result}
     if ctype in ("VALIDATE_TELEPORTATION", "RUN_TELEPORTATION"):
-        result = run_teleportation(float(cmd.get("theta", 1.05)),
-                                   float(cmd.get("phi", 0.785)))
+        result = run_teleportation(float(cmd.get("theta", 1.05)), float(cmd.get("phi", 0.785)))
         return {"status": "OK", "type": "TELEPORTATION_RESULT", "result": result}
     if ctype in ("VALIDATE_SHOR", "RUN_SHOR"):
         result = run_shor(int(cmd["N"]), int(cmd["a"]))

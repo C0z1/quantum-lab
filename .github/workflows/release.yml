@@ -1,71 +1,102 @@
-name: Build Windows installer
+name: Build installers
 
-# Compila el motor C++ en un runner Windows real (MSVC + vcpkg) y empaqueta la
-# app Electron con electron-builder, publicando el instalador .exe como release.
+# Compila el motor C++ nativo en cada SO y empaqueta la app Electron con
+# electron-builder, publicando los instaladores como release al pushear un tag v*.
+# Windows (.exe/NSIS) es el objetivo principal verificado; Linux (AppImage) y
+# macOS (dmg) se construyen también (best-effort; empaquetan las libs del motor).
 on:
   push:
     tags: [ 'v*' ]
-  workflow_dispatch:   # permite dispararlo a mano desde la pestaña Actions
+  workflow_dispatch:
 
 permissions:
-  contents: write       # necesario para crear el release y subir el .exe
+  contents: write
 
 jobs:
-  windows:
-    runs-on: windows-latest
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ windows-latest, ubuntu-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      # --- Motor C++ (Eigen3 + ZeroMQ + msgpack + nlohmann-json) vía vcpkg ---
-      - name: Setup vcpkg dependencies
-        run: |
-          vcpkg install zeromq cppzmq msgpack-cxx eigen3 nlohmann-json gtest --triplet x64-windows
+      # ---------------- Motor C++ por SO ----------------
+      - name: (Windows) vcpkg deps + build engine
+        if: runner.os == 'Windows'
         shell: pwsh
-
-      - name: Configure & build engine (Release)
         run: |
+          vcpkg install zeromq cppzmq msgpack-cxx eigen3 nlohmann-json --triplet x64-windows
           cmake -B build -S packages/core-engine -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows
           cmake --build build --config Release --target quantum-engine
-        shell: pwsh
-
-      - name: Stage engine binary (+ ZeroMQ runtime DLLs)
-        run: |
           $dst = "packages/electron-app/engine-bin"
           New-Item -ItemType Directory -Force -Path $dst | Out-Null
           Copy-Item build/Release/quantum-engine.exe $dst -Force
-          # DLLs de runtime que vcpkg produce (libzmq y dependencias)
-          Get-ChildItem build/Release -Filter *.dll -ErrorAction SilentlyContinue | Copy-Item -Destination $dst -Force
+          Get-ChildItem build/Release -Filter *.dll -EA SilentlyContinue | Copy-Item -Destination $dst -Force
           $vbin = "$env:VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
           if (Test-Path $vbin) { Get-ChildItem $vbin -Filter *.dll | Copy-Item -Destination $dst -Force }
-          Get-ChildItem $dst
-        shell: pwsh
 
-      # --- App Electron + empaquetado ---
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: (Linux) apt deps + build engine
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config patchelf \
+            libeigen3-dev libzmq3-dev cppzmq-dev libmsgpack-dev nlohmann-json3-dev
+          cmake -B build -S packages/core-engine -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc) --target quantum-engine
+          dst=packages/electron-app/engine-bin; mkdir -p "$dst"
+          cp build/quantum-engine "$dst"/
+          # Empaquetar libzmq junto al binario y fijar rpath a $ORIGIN.
+          cp -L "$(ldconfig -p | awk '/libzmq.so.5/{print $NF; exit}')" "$dst"/ || true
+          patchelf --set-rpath '$ORIGIN' "$dst/quantum-engine" || true
+
+      - name: (macOS) brew deps + build engine
+        if: runner.os == 'macOS'
+        run: |
+          brew install eigen zeromq cppzmq msgpack-cxx nlohmann-json || true
+          cmake -B build -S packages/core-engine -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j3 --target quantum-engine
+          dst=packages/electron-app/engine-bin; mkdir -p "$dst"
+          cp build/quantum-engine "$dst"/
+          # Empaquetar dylibs (libzmq + libsodium) y reapuntar a @loader_path.
+          for lib in $(otool -L "$dst/quantum-engine" | awk '/libzmq|libsodium/{print $1}'); do
+            base=$(basename "$lib"); cp -L "$lib" "$dst"/ 2>/dev/null || true
+            install_name_tool -change "$lib" "@loader_path/$base" "$dst/quantum-engine" || true
+          done
+
+      # ---------------- App Electron + empaquetado ----------------
+      - uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: Install & package (electron-builder → NSIS .exe)
+      - name: Install & package
         working-directory: packages/electron-app
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # sin firma de código (preview)
         run: |
-          npm install
-          npx electron-builder --win nsis --publish never
-        shell: pwsh
+          npm install --no-audit --no-fund
+          npx electron-builder --publish never
 
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: QuantumLab-Windows-Installer
-          path: packages/electron-app/dist/*.exe
+          name: QuantumLab-${{ runner.os }}
+          path: |
+            packages/electron-app/dist/*.exe
+            packages/electron-app/dist/*.AppImage
+            packages/electron-app/dist/*.dmg
 
-      - name: Publish GitHub Release
+      - name: Publish to release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: Quantum Lab ${{ github.ref_name }} (preview)
-          files: packages/electron-app/dist/*.exe
           generate_release_notes: true
+          files: |
+            packages/electron-app/dist/*.exe
+            packages/electron-app/dist/*.AppImage
+            packages/electron-app/dist/*.dmg

@@ -32,8 +32,8 @@ function createWindow() {
     title: 'Quantum Lab',
     webPreferences: {
       preload: path.join(__dirname, '..', 'renderer', 'preload.js'),
-      contextIsolation: true,  // §8
-      nodeIntegration: false,  // §8: el Renderer NUNCA accede a Node directamente
+      contextIsolation: true, // §8
+      nodeIntegration: false, // §8: el Renderer NUNCA accede a Node directamente
       sandbox: false,
     },
   });
@@ -54,31 +54,34 @@ function validateGroverParams(params) {
   const iters = Number(params?.iterations ?? 0);
   if (!Number.isInteger(n) || n < 1 || n > MAX_QUBITS)
     throw new Error('n_qubits fuera de rango [1,20]');
-  if (!Number.isInteger(target) || target < 0 || target >= (1 << n))
+  if (!Number.isInteger(target) || target < 0 || target >= 1 << n)
     throw new Error('target_state fuera de rango');
   return { n, target, iters: Number.isInteger(iters) ? iters : 0 };
 }
 
+function sendToRenderer(channel, payload) {
+  if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send(channel, payload);
+}
+
 async function setupBridge() {
   procMgr = new ProcessManager();
-  procMgr.startEngine();
-  // Pequena espera para que el motor haga bind de los sockets.
-  await new Promise((r) => setTimeout(r, 600));
+  const endpoints = await procMgr.init(); // elige puertos TCP libres
+  // Supervisión: reenviar eventos del gestor de procesos al renderer.
+  procMgr.on('status', (s) => sendToRenderer('quantum:engine-status', s));
+  procMgr.on('log', (msg, level) => sendToRenderer('quantum:engine-log', { msg, level }));
+  procMgr.on('down', () =>
+    sendToRenderer('quantum:engine-status', { connected: false, fatal: true })
+  );
 
-  bridge = new QuantumBridge();
-  bridge.on('state-update', (frame) => {
-    if (mainWindow && !mainWindow.isDestroyed())
-      mainWindow.webContents.send('quantum:state-update', frame);
-  });
-  bridge.on('status', (s) => {
-    if (mainWindow && !mainWindow.isDestroyed())
-      mainWindow.webContents.send('quantum:engine-status', s);
-  });
+  procMgr.startEngine();
+  await new Promise((r) => setTimeout(r, 600)); // dejar que el motor haga bind
+
+  bridge = new QuantumBridge(endpoints);
+  bridge.on('state-update', (frame) => sendToRenderer('quantum:state-update', frame));
+  bridge.on('status', (s) => sendToRenderer('quantum:engine-status', s));
   bridge.on('error', (e) => console.error('[bridge]', e.message));
   await bridge.connect();
-  // Envío explícito del estado tras conectar (robusto ante el orden de carga).
-  if (mainWindow && !mainWindow.isDestroyed())
-    mainWindow.webContents.send('quantum:engine-status', { connected: true });
+  sendToRenderer('quantum:engine-status', { connected: true });
 }
 
 // --- Handlers IPC (invocados desde preload via ipcRenderer.invoke) ---
@@ -104,8 +107,7 @@ ipcMain.handle('quantum:run-shor', async (_evt, params) => {
 ipcMain.handle('quantum:run-teleportation', async (_evt, params) => {
   const theta = Number(params?.theta ?? Math.PI / 3);
   const phi = Number(params?.phi ?? Math.PI / 4);
-  if (!Number.isFinite(theta) || !Number.isFinite(phi))
-    throw new Error('theta/phi inválidos');
+  if (!Number.isFinite(theta) || !Number.isFinite(phi)) throw new Error('theta/phi inválidos');
   return bridge.sendCommand({ type: 'RUN_TELEPORTATION', theta, phi });
 });
 
@@ -120,8 +122,7 @@ async function runCaptureAndExit(pngPath) {
   const algo = process.env.QL_ALGO || 'grover';
   try {
     await new Promise((r) => {
-      if (mainWindow.webContents.isLoading())
-        mainWindow.webContents.once('did-finish-load', r);
+      if (mainWindow.webContents.isLoading()) mainWindow.webContents.once('did-finish-load', r);
       else r();
     });
     await new Promise((r) => setTimeout(r, 900));
@@ -153,7 +154,8 @@ async function captureGifAndExit(dir) {
   const interval = Number(process.env.QL_GIFINT || 90);
   try {
     await new Promise((r) => {
-      if (mainWindow.webContents.isLoading()) mainWindow.webContents.once('did-finish-load', r); else r();
+      if (mainWindow.webContents.isLoading()) mainWindow.webContents.once('did-finish-load', r);
+      else r();
     });
     await new Promise((r) => setTimeout(r, 900));
     await mainWindow.webContents.executeJavaScript(`
@@ -166,8 +168,11 @@ async function captureGifAndExit(dir) {
       await new Promise((r) => setTimeout(r, interval));
     }
     console.log(`[gif] ${frames} frames escritos en ${dir}`);
-  } catch (e) { console.error('[gif] error:', e.message); }
-  finally { app.quit(); }
+  } catch (e) {
+    console.error('[gif] error:', e.message);
+  } finally {
+    app.quit();
+  }
 }
 
 app.whenReady().then(async () => {

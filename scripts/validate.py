@@ -8,6 +8,7 @@ Uso:
     packages/core-engine/build/quantum-engine   # terminal 1
     python3 scripts/validate.py                 # terminal 2
 """
+
 import json
 import os
 import sys
@@ -18,9 +19,9 @@ import msgpack
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, "packages", "qiskit-bridge"))
-from algorithms.grover import run_grover              # noqa: E402
+from algorithms.grover import run_grover  # noqa: E402
 from algorithms.teleportation import run_teleportation  # noqa: E402
-from algorithms.shor import run_shor                  # noqa: E402
+from algorithms.shor import run_shor  # noqa: E402
 
 CMD = os.environ.get("QL_CMD_ENDPOINT", "tcp://127.0.0.1:5770")
 STREAM = os.environ.get("QL_STREAM_ENDPOINT", "tcp://127.0.0.1:5771")
@@ -62,12 +63,21 @@ results = []
 
 print("== GROVER ==")
 for n, target, iters in [(2, 3, 1), (3, 5, 2), (4, 7, 3)]:
-    ack, pc = run_cmd({"type": "RUN_GROVER", "n_qubits": n, "target_state": target,
-                       "iterations": iters, "stream_intermediate": True})
+    ack, pc = run_cmd(
+        {
+            "type": "RUN_GROVER",
+            "n_qubits": n,
+            "target_state": target,
+            "iterations": iters,
+            "stream_intermediate": True,
+        }
+    )
     pq = run_grover(n, target, iters)["probabilities"]
     d = max_dp(pc, pq)
     results.append(d < TOL)
-    print(f"  n={n} t={target} it={iters}: max|dp|={d:.2e} {'OK' if d < TOL else 'FAIL'}")
+    print(
+        f"  n={n} t={target} it={iters}: max|dp|={d:.2e} {'OK' if d < TOL else 'FAIL'}"
+    )
 
 print("== TELEPORTATION ==")
 for theta, phi in [(1.05, 0.785), (2.3, -1.4), (0.6, 2.1)]:
@@ -76,8 +86,10 @@ for theta, phi in [(1.05, 0.785), (2.3, -1.4), (0.6, 2.1)]:
     pq = ref["probabilities"]
     d = max_dp(pc, pq)
     results.append(d < TOL)
-    print(f"  theta={theta} phi={phi}: fidelity(C++ ack)={ack.get('fidelity'):.9f} "
-          f"max|dp|={d:.2e} {'OK' if d < TOL else 'FAIL'}")
+    print(
+        f"  theta={theta} phi={phi}: fidelity(C++ ack)={ack.get('fidelity'):.9f} "
+        f"max|dp|={d:.2e} {'OK' if d < TOL else 'FAIL'}"
+    )
 
 print("== SHOR ==")
 for N, a in [(15, 7), (15, 2), (21, 2)]:
@@ -87,8 +99,10 @@ for N, a in [(15, 7), (15, 2), (21, 2)]:
     d = max_dp(pc, pq)
     ok = d < TOL and ack.get("success")
     results.append(ok)
-    print(f"  N={N} a={a}: order(C++)={ack.get('order')} factors={ack.get('factors')} "
-          f"max|dp|={d:.2e} {'OK' if ok else 'FAIL'}")
+    print(
+        f"  N={N} a={a}: order(C++)={ack.get('order')} factors={ack.get('factors')} "
+        f"max|dp|={d:.2e} {'OK' if ok else 'FAIL'}"
+    )
 
 req.send_string(json.dumps({"type": "SHUTDOWN"}))
 req.recv_string()

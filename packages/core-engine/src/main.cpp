@@ -22,7 +22,7 @@ static std::string envOr(const char* name, const std::string& def) {
 
 int main() {
     // TCP en loopback: portable (funciona en Linux, macOS y Windows nativo).
-    const std::string cmd_ep    = envOr("QL_CMD_ENDPOINT", "tcp://127.0.0.1:5770");
+    const std::string cmd_ep = envOr("QL_CMD_ENDPOINT", "tcp://127.0.0.1:5770");
     const std::string stream_ep = envOr("QL_STREAM_ENDPOINT", "tcp://127.0.0.1:5771");
 
     std::signal(SIGINT, handleSignal);

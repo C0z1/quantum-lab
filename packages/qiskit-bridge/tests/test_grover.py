@@ -1,4 +1,5 @@
 """Tests del circuito de Grover de Qiskit (golden values §9)."""
+
 import math
 import os
 import sys
@@ -7,11 +8,11 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from algorithms.grover import run_grover, optimal_iterations  # noqa: E402
+from algorithms.grover import optimal_iterations, run_grover  # noqa: E402
 
 
 def _closed_form(n: int, k: int) -> float:
-    theta = math.asin(1.0 / math.sqrt(2 ** n))
+    theta = math.asin(1.0 / math.sqrt(2**n))
     return math.sin((2 * k + 1) * theta) ** 2
 
 

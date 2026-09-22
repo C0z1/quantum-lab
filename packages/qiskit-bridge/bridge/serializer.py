@@ -2,14 +2,16 @@
 
 Layout identico al motor C++ (§2): [re0, im0, prob0, re1, im1, prob1, ...].
 """
+
 from __future__ import annotations
 
-import numpy as np
 import msgpack
+import numpy as np
 
 
-def statevector_to_frame_bytes(sv: np.ndarray, iteration: int,
-                               n_qubits: int, is_final: bool) -> bytes:
+def statevector_to_frame_bytes(
+    sv: np.ndarray, iteration: int, n_qubits: int, is_final: bool
+) -> bytes:
     """Empaqueta un statevector NumPy complejo como frame MessagePack."""
     sv = np.asarray(sv, dtype=np.complex128)
     re = sv.real

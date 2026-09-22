@@ -18,8 +18,8 @@ struct Result {
     uint64_t a = 0;
     int counting_qubits = 0;
     int work_qubits = 0;
-    uint64_t order = 0;                 // periodo r hallado (0 si falla)
-    std::vector<uint64_t> factors;      // factores no triviales de N
+    uint64_t order = 0;             // periodo r hallado (0 si falla)
+    std::vector<uint64_t> factors;  // factores no triviales de N
     bool success = false;
 };
 
@@ -32,6 +32,6 @@ Result run(uint64_t N, uint64_t a, const FrameCallback& on_frame);
 // Utilidades clasicas expuestas para tests.
 uint64_t gcd(uint64_t x, uint64_t y);
 uint64_t powmod(uint64_t base, uint64_t exp, uint64_t mod);
-uint64_t classicalOrder(uint64_t a, uint64_t N); // menor r con a^r = 1 mod N
+uint64_t classicalOrder(uint64_t a, uint64_t N);  // menor r con a^r = 1 mod N
 
-} // namespace shor
+}  // namespace shor

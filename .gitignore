@@ -11,6 +11,11 @@ packages/core-engine/build/
 # Node / Electron
 node_modules/
 packages/electron-app/dist/
+packages/electron-app/py-bin/
+
+# PyInstaller (bridge empaquetado, opcional)
+packages/qiskit-bridge/build/
+packages/qiskit-bridge/dist/
 
 # Binario del motor colocado por el CI (se conserva el .gitkeep)
 packages/electron-app/engine-bin/*

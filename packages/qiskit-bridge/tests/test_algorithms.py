@@ -1,4 +1,5 @@
 """Tests de las referencias Qiskit de teleportacion y Shor."""
+
 import os
 import sys
 
@@ -6,13 +7,19 @@ import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+from algorithms.shor import classical_order, run_shor  # noqa: E402
 from algorithms.teleportation import run_teleportation  # noqa: E402
-from algorithms.shor import run_shor, classical_order  # noqa: E402
 
 
-@pytest.mark.parametrize("theta,phi", [
-    (0.0, 0.0), (1.5707, 0.0), (1.1, 0.7), (2.3, -1.4),
-])
+@pytest.mark.parametrize(
+    "theta,phi",
+    [
+        (0.0, 0.0),
+        (1.5707, 0.0),
+        (1.1, 0.7),
+        (2.3, -1.4),
+    ],
+)
 def test_teleportation_fidelity_one(theta, phi):
     res = run_teleportation(theta, phi)
     assert res["fidelity"] == pytest.approx(1.0, abs=1e-9)

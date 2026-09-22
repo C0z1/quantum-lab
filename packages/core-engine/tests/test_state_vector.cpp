@@ -19,7 +19,7 @@ TEST(StateVector, InitialStateIsZeroKet) {
 
 TEST(StateVector, RejectsInvalidQubitCount) {
     EXPECT_THROW(QuantumStateVector(0), std::invalid_argument);
-    EXPECT_THROW(QuantumStateVector(21), std::invalid_argument); // §8: limite n<=20
+    EXPECT_THROW(QuantumStateVector(21), std::invalid_argument);  // §8: limite n<=20
 }
 
 TEST(StateVector, HadamardOnSingleQubit) {
@@ -36,8 +36,7 @@ TEST(StateVector, HadamardAllUniformSuperposition) {
     QuantumStateVector sv(3);
     sv.applyHadamardAll();
     const double p = 1.0 / 8.0;
-    for (int i = 0; i < sv.dim(); ++i)
-        EXPECT_NEAR(sv.probabilities()(i), p, 1e-12);
+    for (int i = 0; i < sv.dim(); ++i) EXPECT_NEAR(sv.probabilities()(i), p, 1e-12);
     expectNormalized(sv);
 }
 
@@ -56,8 +55,8 @@ TEST(StateVector, CNOTEntangles) {
     QuantumStateVector sv(2);
     sv.applyHadamard(0);
     sv.applyCNOT(0, 1);
-    EXPECT_NEAR(sv.probabilities()(0), 0.5, 1e-12); // |00>
-    EXPECT_NEAR(sv.probabilities()(3), 0.5, 1e-12); // |11>
+    EXPECT_NEAR(sv.probabilities()(0), 0.5, 1e-12);  // |00>
+    EXPECT_NEAR(sv.probabilities()(3), 0.5, 1e-12);  // |11>
     EXPECT_NEAR(sv.probabilities()(1), 0.0, 1e-12);
     EXPECT_NEAR(sv.probabilities()(2), 0.0, 1e-12);
     expectNormalized(sv);
@@ -66,8 +65,8 @@ TEST(StateVector, CNOTEntangles) {
 TEST(StateVector, ToffoliFlipsOnlyWhenBothControls) {
     QuantumStateVector sv(3);
     sv.applyX(0);
-    sv.applyX(1);            // estado |011> (indice 3)
-    sv.applyToffoli(0, 1, 2); // ambos controles 1 -> flip target -> |111> (indice 7)
+    sv.applyX(1);              // estado |011> (indice 3)
+    sv.applyToffoli(0, 1, 2);  // ambos controles 1 -> flip target -> |111> (indice 7)
     EXPECT_NEAR(std::abs(sv.state()(7)), 1.0, 1e-12);
     expectNormalized(sv);
 }
@@ -75,7 +74,7 @@ TEST(StateVector, ToffoliFlipsOnlyWhenBothControls) {
 TEST(StateVector, PhaseGateAddsRelativePhase) {
     QuantumStateVector sv(1);
     sv.applyHadamard(0);
-    sv.applyPhase(0, M_PI); // e^{i pi} = -1 sobre |1>
+    sv.applyPhase(0, M_PI);  // e^{i pi} = -1 sobre |1>
     EXPECT_NEAR(sv.state()(1).real(), -1.0 / std::sqrt(2.0), 1e-12);
     expectNormalized(sv);
 }
@@ -87,7 +86,7 @@ TEST(StateVector, NormPreservedThroughRandomCircuit) {
     sv.applyCNOT(1, 3);
     sv.applyPhase(0, 0.7);
     sv.applyToffoli(0, 1, 2);
-    expectNormalized(sv); // invariante debe sobrevivir a cualquier circuito unitario
+    expectNormalized(sv);  // invariante debe sobrevivir a cualquier circuito unitario
 }
 
 // Comprobacion cruzada: gateMatrix() (via Kronecker) debe coincidir con la

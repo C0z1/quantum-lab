@@ -5,6 +5,7 @@ del motor C++). La QFT inversa se implementa a mano con la MISMA convencion que
 el motor C++ para permitir comparacion elemento a elemento del registro de
 conteo. Layout: work [0, nw), counting [nw, nw+t).
 """
+
 from __future__ import annotations
 
 import math
@@ -66,14 +67,13 @@ def build_circuit(N: int, a: int) -> tuple[QuantumCircuit, int, int]:
     work = list(range(nw))
     count_start = nw
 
-    qc.x(work[0])                       # registro de trabajo = |1>
+    qc.x(work[0])  # registro de trabajo = |1>
     for j in range(t):
-        qc.h(count_start + j)           # superposicion en el conteo
+        qc.h(count_start + j)  # superposicion en el conteo
 
     for j in range(t):
         mult = pow(a, 1 << j, N)
-        gate = UnitaryGate(_modmul_unitary(mult, N, nw),
-                           label=f"*{mult}%{N}").control(1)
+        gate = UnitaryGate(_modmul_unitary(mult, N, nw), label=f"*{mult}%{N}").control(1)
         qc.append(gate, [count_start + j] + work)
 
     _inverse_qft(qc, count_start, t)
@@ -94,8 +94,13 @@ def run_shor(N: int, a: int) -> dict:
     """
     if _gcd(a, N) != 1:
         g = _gcd(a, N)
-        return {"counting_probabilities": [], "counting_qubits": 0,
-                "work_qubits": 0, "order": 0, "factors": sorted({g, N // g})}
+        return {
+            "counting_probabilities": [],
+            "counting_qubits": 0,
+            "work_qubits": 0,
+            "order": 0,
+            "factors": sorted({g, N // g}),
+        }
 
     qc, nw, t = build_circuit(N, a)
     sim = AerSimulator(method="statevector")

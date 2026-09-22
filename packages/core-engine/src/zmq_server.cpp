@@ -11,8 +11,8 @@
 
 using json = nlohmann::json;
 
-static constexpr int   MAX_QUBITS   = 20;   // §8
-static constexpr int   RCV_TIMEO_MS = 5000; // §8: ZMQ_RCVTIMEO
+static constexpr int MAX_QUBITS = 20;      // §8
+static constexpr int RCV_TIMEO_MS = 5000;  // §8: ZMQ_RCVTIMEO
 static const std::string STREAM_TOPIC = "statevec";
 
 ZmqServer::ZmqServer(std::string cmd_endpoint, std::string stream_endpoint)
@@ -51,7 +51,7 @@ StateVectorFrame ZmqServer::buildFrame(uint32_t iteration, bool is_final,
         const double im = st(i).imag();
         f.data.push_back(re);
         f.data.push_back(im);
-        f.data.push_back(re * re + im * im); // prob precalculada (§2)
+        f.data.push_back(re * re + im * im);  // prob precalculada (§2)
     }
     return f;
 }
@@ -78,9 +78,9 @@ StateVectorFrame ZmqServer::buildFrameFromProbs(uint32_t iteration, bool is_fina
     f.data.reserve(static_cast<size_t>(probs.size()) * 3);
     for (int i = 0; i < probs.size(); ++i) {
         const double p = probs(i);
-        f.data.push_back(std::sqrt(p)); // re (fase no observable en marginal)
-        f.data.push_back(0.0);          // im
-        f.data.push_back(p);            // prob
+        f.data.push_back(std::sqrt(p));  // re (fase no observable en marginal)
+        f.data.push_back(0.0);           // im
+        f.data.push_back(p);             // prob
     }
     return f;
 }
@@ -89,11 +89,10 @@ void ZmqServer::handleRunGrover(int n_qubits, int target_state, int iterations,
                                 bool stream_intermediate) {
     try {
         grover::run(n_qubits, target_state, iterations,
-            [&](int iteration, bool is_final, const QuantumStateVector& sv) {
-                if (!stream_intermediate && !is_final && iteration != 0) return;
-                publishFrame(buildFrame(static_cast<uint32_t>(iteration),
-                                        is_final, sv));
-            });
+                    [&](int iteration, bool is_final, const QuantumStateVector& sv) {
+                        if (!stream_intermediate && !is_final && iteration != 0) return;
+                        publishFrame(buildFrame(static_cast<uint32_t>(iteration), is_final, sv));
+                    });
     } catch (const std::exception& e) {
         std::cerr << "[engine] grover error: " << e.what() << "\n";
     }
@@ -121,19 +120,18 @@ std::string ZmqServer::dispatch(const std::string& json_cmd) {
 
         // Validacion (§8): rango de qubits y estado objetivo.
         if (n < 1 || n > MAX_QUBITS)
-            return json{{"status", "ERROR"},
-                        {"error", "n_qubits out of range [1,20]"}}.dump();
+            return json{{"status", "ERROR"}, {"error", "n_qubits out of range [1,20]"}}.dump();
         if (target < 0 || target >= (1 << n))
-            return json{{"status", "ERROR"},
-                        {"error", "target_state out of range"}}.dump();
+            return json{{"status", "ERROR"}, {"error", "target_state out of range"}}.dump();
 
         // ACK inmediato + computo en un hilo separado (§10: no bloquear REP).
         std::thread([this, n, target, iters, stream]() {
             handleRunGrover(n, target, iters, stream);
         }).detach();
 
-        return json{{"status", "ACK"}, {"type", "RUN_GROVER"},
-                    {"n_qubits", n}, {"target_state", target}}.dump();
+        return json{
+            {"status", "ACK"}, {"type", "RUN_GROVER"}, {"n_qubits", n}, {"target_state", target}}
+            .dump();
     }
 
     if (type == "RUN_TELEPORTATION") {
@@ -143,16 +141,20 @@ std::string ZmqServer::dispatch(const std::string& json_cmd) {
         // Rapido (3 qubits): computo sincrono y resultado en el ACK.
         double fidelity = 0.0;
         try {
-            auto r = teleport::run(theta, phi,
-                [&](int step, bool is_final, const QuantumStateVector& sv) {
+            auto r = teleport::run(
+                theta, phi, [&](int step, bool is_final, const QuantumStateVector& sv) {
                     publishFrame(buildFrame(static_cast<uint32_t>(step), is_final, sv));
                 });
             fidelity = r.fidelity;
         } catch (const std::exception& e) {
             return json{{"status", "ERROR"}, {"error", e.what()}}.dump();
         }
-        return json{{"status", "ACK"}, {"type", "RUN_TELEPORTATION"},
-                    {"theta", theta}, {"phi", phi}, {"fidelity", fidelity}}.dump();
+        return json{{"status", "ACK"},
+                    {"type", "RUN_TELEPORTATION"},
+                    {"theta", theta},
+                    {"phi", phi},
+                    {"fidelity", fidelity}}
+            .dump();
     }
 
     if (type == "RUN_SHOR") {
@@ -162,16 +164,19 @@ std::string ZmqServer::dispatch(const std::string& json_cmd) {
         if (a < 2 || a >= N)
             return json{{"status", "ERROR"}, {"error", "require 2 <= a < N"}}.dump();
         try {
-            auto r = shor::run(N, a,
-                [&](int step, bool is_final, const Eigen::VectorXd& probs) {
-                    uint32_t nq = 0;
-                    while ((uint64_t(1) << nq) < (uint64_t)probs.size()) ++nq;
-                    publishFrame(buildFrameFromProbs(static_cast<uint32_t>(step),
-                                                     is_final, nq, probs));
-                });
-            return json{{"status", "ACK"}, {"type", "RUN_SHOR"},
-                        {"N", N}, {"a", a}, {"order", r.order},
-                        {"factors", r.factors}, {"success", r.success}}.dump();
+            auto r = shor::run(N, a, [&](int step, bool is_final, const Eigen::VectorXd& probs) {
+                uint32_t nq = 0;
+                while ((uint64_t(1) << nq) < (uint64_t)probs.size()) ++nq;
+                publishFrame(buildFrameFromProbs(static_cast<uint32_t>(step), is_final, nq, probs));
+            });
+            return json{{"status", "ACK"},
+                        {"type", "RUN_SHOR"},
+                        {"N", N},
+                        {"a", a},
+                        {"order", r.order},
+                        {"factors", r.factors},
+                        {"success", r.success}}
+                .dump();
         } catch (const std::exception& e) {
             return json{{"status", "ERROR"}, {"error", e.what()}}.dump();
         }

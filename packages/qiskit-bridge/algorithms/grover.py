@@ -4,6 +4,7 @@ Sirve como validacion independiente del motor C++. La convencion de indexado
 es little-endian (qubit 0 = bit menos significativo), identica a la del motor
 C++, de modo que el indice de amplitud i corresponde al mismo estado base.
 """
+
 from __future__ import annotations
 
 import math
@@ -15,7 +16,7 @@ from qiskit_aer import AerSimulator
 
 def optimal_iterations(n_qubits: int) -> int:
     """Numero optimo de iteraciones ~ floor(pi/4 * sqrt(N))."""
-    n_states = 2 ** n_qubits
+    n_states = 2**n_qubits
     return max(1, int(math.floor(math.pi / 4.0 * math.sqrt(n_states))))
 
 
@@ -62,8 +63,7 @@ def build_circuit(n_qubits: int, target_state: int, iterations: int) -> QuantumC
     return qc
 
 
-def run_grover(n_qubits: int, target_state: int, iterations: int,
-               shots: int = 1024) -> dict:
+def run_grover(n_qubits: int, target_state: int, iterations: int, shots: int = 1024) -> dict:
     """Ejecuta Grover y devuelve statevector, probabilidades y counts.
 
     Retorna:
@@ -76,7 +76,7 @@ def run_grover(n_qubits: int, target_state: int, iterations: int,
     """
     if n_qubits < 1 or n_qubits > 20:
         raise ValueError("n_qubits must be in [1, 20]")
-    if not (0 <= target_state < 2 ** n_qubits):
+    if not (0 <= target_state < 2**n_qubits):
         raise ValueError("target_state out of range")
     if iterations <= 0:
         iterations = optimal_iterations(n_qubits)

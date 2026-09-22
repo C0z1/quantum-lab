@@ -13,7 +13,7 @@
 //   cmd    -> ipc:///tmp/quantum-lab-cmd
 //   stream -> ipc:///tmp/quantum-lab-stream
 class ZmqServer {
-public:
+  public:
     ZmqServer(std::string cmd_endpoint, std::string stream_endpoint);
     ~ZmqServer();
 
@@ -22,7 +22,7 @@ public:
 
     void stop() { running_ = false; }
 
-private:
+  private:
     std::string cmd_endpoint_;
     std::string stream_endpoint_;
     zmq::context_t ctx_;
@@ -42,11 +42,9 @@ private:
 
     // Construye un frame a partir de una distribucion de probabilidad marginal
     // (usado por Shor: re=sqrt(p), im=0, prob=p).
-    StateVectorFrame buildFrameFromProbs(uint32_t iteration, bool is_final,
-                                         uint32_t n_qubits,
+    StateVectorFrame buildFrameFromProbs(uint32_t iteration, bool is_final, uint32_t n_qubits,
                                          const Eigen::VectorXd& probs) const;
 
     // Handler de RUN_GROVER: ejecuta y publica frames (asincrono).
-    void handleRunGrover(int n_qubits, int target_state, int iterations,
-                         bool stream_intermediate);
+    void handleRunGrover(int n_qubits, int target_state, int iterations, bool stream_intermediate);
 };

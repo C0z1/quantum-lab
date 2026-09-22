@@ -4,7 +4,8 @@
 
 **Laboratorio cuántico interactivo** — traduce algoritmos cuánticos (Grover, Teletransportación, Shor) en visualizaciones 3D inmersivas, con rigor técnico total.
 
-[![Build Windows installer](https://github.com/C0z1/quantum-lab/actions/workflows/release.yml/badge.svg)](https://github.com/C0z1/quantum-lab/actions/workflows/release.yml)
+[![CI](https://github.com/C0z1/quantum-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/C0z1/quantum-lab/actions/workflows/ci.yml)
+[![Build installers](https://github.com/C0z1/quantum-lab/actions/workflows/release.yml/badge.svg)](https://github.com/C0z1/quantum-lab/actions/workflows/release.yml)
 [![Release](https://img.shields.io/github/v/release/C0z1/quantum-lab?include_prereleases)](https://github.com/C0z1/quantum-lab/releases)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8052ff.svg)](LICENSE)
 
