@@ -45,6 +45,9 @@ const PILLS = {
   grover: ['prep', 'oráculo', 'difusor', 'medida'],
   teleport: ['prep |ψ⟩', 'Bell', 'medida', 'corrige'],
   shor: ['H⊗ⁿ', 'mod-exp', 'QFT⁻¹'],
+  dj: ['H⊗ⁿ · |−⟩', 'oráculo', 'H⊗ⁿ · medida'],
+  bv: ['H⊗ⁿ · |−⟩', 'oráculo a·x', 'H⊗ⁿ · medida'],
+  qft: ['peine', 'QFT', 'picos'],
 };
 const LEGEND = {
   grover: [
@@ -58,6 +61,18 @@ const LEGEND = {
   shor: [
     { color: '#ffb829', label: 'picos s/r' },
     { color: '#8052ff', label: 'conteo' },
+  ],
+  dj: [
+    { color: '#ffb829', label: '|0…0⟩ (constante)' },
+    { color: '#8052ff', label: 'entradas' },
+  ],
+  bv: [
+    { color: '#ffb829', label: 'cadena a' },
+    { color: '#8052ff', label: 'entradas' },
+  ],
+  qft: [
+    { color: '#ffb829', label: 'picos' },
+    { color: '#8052ff', label: 'registro' },
   ],
 };
 
@@ -131,7 +146,7 @@ function configureFor(algo, params) {
       { k: 'θ', v: ((params.theta * 180) / Math.PI).toFixed(0) + '°' },
       { k: 'φ', v: ((params.phi * 180) / Math.PI).toFixed(0) + '°' },
     ]);
-  } else {
+  } else if (algo === 'shor') {
     viz.setMode('bars');
     viz.highlightTarget(-1);
     viz.setPeaks([]);
@@ -143,6 +158,49 @@ function configureFor(algo, params) {
       { k: 'a', v: params.a },
       { k: 'Orden r', v: '—', accent: true },
       { k: 'Factores', v: '—', accent: true, small: true },
+    ]);
+  } else if (algo === 'dj') {
+    viz.setMode('bars');
+    viz.initBars(1 << params.nQubits);
+    viz.highlightTarget(-1);
+    viz.setPeaks([]);
+    state.target = -1;
+    ui.setAnalysisTitle('Registro de entrada · medición');
+    ui.setStatus({ qubits: params.nQubits, dim: 1 << params.nQubits });
+    ui.setMetrics([
+      { k: 'Qubits', v: params.nQubits },
+      { k: 'Oráculo', v: params.balanced ? 'balanceada' : 'constante' },
+      { k: 'Veredicto', v: '—', accent: true },
+      { k: 'Consultas', v: 1 },
+    ]);
+  } else if (algo === 'bv') {
+    viz.setMode('bars');
+    viz.initBars(1 << params.nQubits);
+    viz.highlightTarget(params.hidden);
+    viz.setPeaks([]);
+    state.target = params.hidden;
+    ui.setAnalysisTitle('Registro de entrada · medición');
+    ui.setStatus({ qubits: params.nQubits, dim: 1 << params.nQubits });
+    ui.setMetrics([
+      { k: 'Qubits', v: params.nQubits },
+      { k: 'a oculta', v: params.hidden.toString(2).padStart(params.nQubits, '0'), small: true },
+      { k: 'Recuperada', v: '—', accent: true, small: true },
+      { k: 'Consultas', v: 1 },
+    ]);
+  } else {
+    // qft
+    viz.setMode('bars');
+    viz.initBars(1 << params.nQubits);
+    viz.highlightTarget(-1);
+    viz.setPeaks([]);
+    state.target = -1;
+    ui.setAnalysisTitle('Espectro · registro');
+    ui.setStatus({ qubits: params.nQubits, dim: 1 << params.nQubits });
+    ui.setMetrics([
+      { k: 'Qubits', v: params.nQubits },
+      { k: 'Periodo m', v: params.periodExp },
+      { k: 'Picos', v: 1 << params.periodExp, accent: true },
+      { k: 'Espaciado', v: 1 << (params.nQubits - params.periodExp) },
     ]);
   }
   ui.setHud(
@@ -183,7 +241,7 @@ async function runAlgorithm(algo, params) {
       const ack = await window.quantumAPI.runTeleportation(params);
       state.fidelity = ack.fidelity;
       ui.log(`teleportación completa · fidelidad ${ack.fidelity.toFixed(4)}`, 'ok');
-    } else {
+    } else if (algo === 'shor') {
       ui.log(`RUN_SHOR N=${params.N} a=${params.a}`, 'cmd');
       const ack = await window.quantumAPI.runShor(params);
       state.shorAck = ack;
@@ -193,6 +251,27 @@ async function runAlgorithm(algo, params) {
           : 'sin factorización',
         ack.success ? 'ok' : 'warn'
       );
+    } else if (algo === 'dj') {
+      ui.log(`RUN_DJ n=${params.nQubits} ${params.balanced ? 'balanceada' : 'constante'}`, 'cmd');
+      const ack = await window.quantumAPI.runDeutschJozsa(params);
+      state.djAck = ack;
+      ui.log(
+        `veredicto: función ${ack.is_constant ? 'CONSTANTE' : 'BALANCEADA'} (1 consulta)`,
+        'ok'
+      );
+    } else if (algo === 'bv') {
+      ui.log(`RUN_BV n=${params.nQubits} a=${params.hidden}`, 'cmd');
+      const ack = await window.quantumAPI.runBernsteinVazirani(params);
+      state.bvAck = ack;
+      const rec = (ack.recovered >>> 0).toString(2).padStart(params.nQubits, '0');
+      ui.log(
+        `cadena recuperada: ${rec} ${ack.recovered === params.hidden ? '✓' : '✗'}`,
+        ack.recovered === params.hidden ? 'ok' : 'warn'
+      );
+    } else {
+      ui.log(`RUN_QFT n=${params.nQubits} m=${params.periodExp}`, 'cmd');
+      await window.quantumAPI.runQFT(params);
+      ui.log(`QFT aplicada · ${1 << params.periodExp} picos espaciados`, 'ok');
     }
   } catch (e) {
     ui.log('error: ' + e.message, 'err');
@@ -267,6 +346,7 @@ function showFrame(idx, forward) {
     ui.setStateTable(topAmplitudes(frame.data, frame.stateSize, nbits));
     updatePills(frame.iteration);
   } else {
+    // Algoritmos de barras marginales (shor / dj / bv / qft).
     ui.setStatus({ qubits: nbits, dim: frame.stateSize });
     if (frame.isFinal) {
       const probs = [];
@@ -278,19 +358,58 @@ function showFrame(idx, forward) {
       ui.setStateTable(
         topAmplitudes(frame.data, frame.stateSize, nbits).filter((r) => r.prob > 1e-4)
       );
-      const ack = state.shorAck || {};
-      ui.setMetrics([
-        { k: 'N', v: state.params.N },
-        { k: 'a', v: state.params.a },
-        { k: 'Orden r', v: ack.order ?? '—', accent: true },
-        { k: 'Factores', v: (ack.factors || []).join(' · ') || '—', accent: true, small: true },
-      ]);
+      setMarginalMetrics(nbits, hl);
       updatePills(2);
     } else {
       viz.setPeaks([]);
       chart.clear();
       updatePills(0);
     }
+  }
+}
+
+// Métricas del panel para los algoritmos de barras marginales, en su frame final.
+function setMarginalMetrics(nbits, peaks) {
+  const p = state.params;
+  if (state.algo === 'shor') {
+    const ack = state.shorAck || {};
+    ui.setMetrics([
+      { k: 'N', v: p.N },
+      { k: 'a', v: p.a },
+      { k: 'Orden r', v: ack.order ?? '—', accent: true },
+      { k: 'Factores', v: (ack.factors || []).join(' · ') || '—', accent: true, small: true },
+    ]);
+  } else if (state.algo === 'dj') {
+    const ack = state.djAck || {};
+    ui.setMetrics([
+      { k: 'Qubits', v: p.nQubits },
+      { k: 'Oráculo', v: p.balanced ? 'balanceada' : 'constante' },
+      {
+        k: 'Veredicto',
+        v: ack.is_constant ? 'CONSTANTE' : 'BALANCEADA',
+        accent: true,
+        small: true,
+      },
+      { k: 'Consultas', v: 1 },
+    ]);
+  } else if (state.algo === 'bv') {
+    const ack = state.bvAck || {};
+    const rec =
+      ack.recovered != null ? (ack.recovered >>> 0).toString(2).padStart(nbits, '0') : '—';
+    ui.setMetrics([
+      { k: 'Qubits', v: p.nQubits },
+      { k: 'a oculta', v: p.hidden.toString(2).padStart(nbits, '0'), small: true },
+      { k: 'Recuperada', v: rec, accent: true, small: true },
+      { k: 'Consultas', v: 1 },
+    ]);
+  } else {
+    // qft
+    ui.setMetrics([
+      { k: 'Qubits', v: p.nQubits },
+      { k: 'Periodo m', v: p.periodExp },
+      { k: 'Picos medidos', v: peaks.length, accent: true },
+      { k: 'Espaciado', v: 1 << (p.nQubits - p.periodExp) },
+    ]);
   }
 }
 

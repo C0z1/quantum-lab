@@ -6,6 +6,9 @@ contextBridge.exposeInMainWorld('quantumAPI', {
   runGrover: (params) => ipcRenderer.invoke('quantum:run-grover', params),
   runShor: (params) => ipcRenderer.invoke('quantum:run-shor', params),
   runTeleportation: (params) => ipcRenderer.invoke('quantum:run-teleportation', params),
+  runDeutschJozsa: (params) => ipcRenderer.invoke('quantum:run-dj', params),
+  runBernsteinVazirani: (params) => ipcRenderer.invoke('quantum:run-bv', params),
+  runQFT: (params) => ipcRenderer.invoke('quantum:run-qft', params),
   stopExecution: () => ipcRenderer.invoke('quantum:stop'),
 
   // Suscripcion a frames del vector de estado

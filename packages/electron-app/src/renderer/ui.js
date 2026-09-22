@@ -8,6 +8,9 @@ const ICONS = {
   teleport:
     '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="12" r="2.5"/><path d="M8.5 12h7" stroke-dasharray="2 2"/></svg>',
   shor: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V9m5 10V5m5 14v-7m5 7V8"/></svg>',
+  dj: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 12h6l1.5-5 3 14 1.5-7h4"/></svg>',
+  bv: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h4v10H4zM10 7h4v10h-4zM16 7h4v10h-4z" stroke-dasharray="2 2"/><path d="M6 4v3M18 4v3"/></svg>',
+  qft: '<svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 15c3 0 3-6 6-6s3 6 6 6 3-6 6-6"/></svg>',
 };
 
 const ALGOS = {
@@ -18,6 +21,13 @@ const ALGOS = {
     hudSub: 'medición diferida',
   },
   shor: { name: 'Shor', desc: 'Factorización', hudSub: 'estimación de fase (QPE)' },
+  dj: {
+    name: 'Deutsch-Jozsa',
+    desc: 'Constante vs balanceada',
+    hudSub: 'phase kickback · 1 consulta',
+  },
+  bv: { name: 'Bernstein-Vazirani', desc: 'Cadena oculta', hudSub: 'recupera a en 1 consulta' },
+  qft: { name: 'QFT', desc: 'Transformada de Fourier', hudSub: 'peine → picos espaciados' },
 };
 
 export class UIController {
@@ -167,7 +177,7 @@ export class UIController {
       };
       ['t_th', 't_ph'].forEach((id) => this.$(id).addEventListener('input', sync));
       sync();
-    } else {
+    } else if (algo === 'shor') {
       P.innerHTML = `
         <p class="hintbox">Factorización por order-finding cuántico (QPE + QFT⁻¹).</p>
         <div class="field"><label>N a factorizar</label>
@@ -185,6 +195,51 @@ export class UIController {
         this.$('s_aV').textContent = this.$('s_a').value;
       };
       ['s_N', 's_a'].forEach((id) => this.$(id).addEventListener('input', sync));
+      sync();
+    } else if (algo === 'dj') {
+      P.innerHTML = `
+        <p class="hintbox">Decide si una función es <b>constante</b> o <b>balanceada</b> con una sola consulta al oráculo. El clásico necesitaría 2ⁿ⁻¹+1.</p>
+        <div class="field"><label>Qubits de entrada <b id="dj_nV">3</b></label><input id="dj_nq" type="range" min="1" max="8" value="3"></div>
+        <div class="field"><label>Tipo de oráculo</label>
+          <select id="dj_bal">
+            <option value="1">Balanceada (paridad)</option>
+            <option value="0">Constante (f = 0)</option>
+          </select></div>`;
+      const sync = () => {
+        this.$('dj_nV').textContent = this.$('dj_nq').value;
+      };
+      this.$('dj_nq').addEventListener('input', sync);
+      sync();
+    } else if (algo === 'bv') {
+      P.innerHTML = `
+        <p class="hintbox">Recupera la cadena oculta <b>a</b> (donde f(x)=a·x) en <b>una</b> consulta. El clásico necesita n consultas.</p>
+        <div class="field"><label>Qubits <b id="bv_nV">4</b></label><input id="bv_nq" type="range" min="1" max="8" value="4"></div>
+        <div class="field"><label>Cadena oculta a <b id="bv_hV">1011</b></label><input id="bv_h" type="range" min="0" max="15" value="11"></div>`;
+      const sync = () => {
+        const n = +this.$('bv_nq').value,
+          maxH = (1 << n) - 1;
+        this.$('bv_h').max = String(maxH);
+        if (+this.$('bv_h').value > maxH) this.$('bv_h').value = String(maxH);
+        this.$('bv_nV').textContent = n;
+        this.$('bv_hV').textContent = (+this.$('bv_h').value).toString(2).padStart(n, '0');
+      };
+      ['bv_nq', 'bv_h'].forEach((id) => this.$(id).addEventListener('input', sync));
+      sync();
+    } else {
+      // qft
+      P.innerHTML = `
+        <p class="hintbox">Un <b>peine</b> uniforme (periodo 2ᵐ en posición) se transforma en <b>picos</b> espaciados: la QFT revela frecuencias, base de Shor y la estimación de fase.</p>
+        <div class="field"><label>Qubits <b id="q_nV">4</b></label><input id="q_nq" type="range" min="2" max="7" value="4"></div>
+        <div class="field"><label>Exponente de periodo m <b id="q_mV">2</b></label><input id="q_m" type="range" min="0" max="4" value="2"></div>
+        <p class="hintbox" style="opacity:.7">2ᵐ picos, espaciados 2ⁿ⁻ᵐ.</p>`;
+      const sync = () => {
+        const n = +this.$('q_nq').value;
+        this.$('q_m').max = String(n);
+        if (+this.$('q_m').value > n) this.$('q_m').value = String(n);
+        this.$('q_nV').textContent = n;
+        this.$('q_mV').textContent = this.$('q_m').value;
+      };
+      ['q_nq', 'q_m'].forEach((id) => this.$(id).addEventListener('input', sync));
       sync();
     }
   }
@@ -245,6 +300,12 @@ export class UIController {
         theta: (+this.$('t_th').value * Math.PI) / 180,
         phi: (+this.$('t_ph').value * Math.PI) / 180,
       };
+    if (this.algo === 'dj')
+      return { nQubits: +this.$('dj_nq').value, balanced: this.$('dj_bal').value === '1' };
+    if (this.algo === 'bv')
+      return { nQubits: +this.$('bv_nq').value, hidden: +this.$('bv_h').value };
+    if (this.algo === 'qft')
+      return { nQubits: +this.$('q_nq').value, periodExp: +this.$('q_m').value };
     return { N: +this.$('s_N').value, a: +this.$('s_a').value };
   }
 

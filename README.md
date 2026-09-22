@@ -2,7 +2,7 @@
 
 # ⚛️ Quantum Lab
 
-**Laboratorio cuántico interactivo** — traduce algoritmos cuánticos (Grover, Teletransportación, Shor) en visualizaciones 3D inmersivas, con rigor técnico total.
+**Laboratorio cuántico interactivo** — traduce seis algoritmos cuánticos (Grover, Teletransportación, Shor, Deutsch-Jozsa, Bernstein-Vazirani, QFT) en visualizaciones 3D inmersivas, con rigor técnico total.
 
 [![CI](https://github.com/C0z1/quantum-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/C0z1/quantum-lab/actions/workflows/ci.yml)
 [![Build installers](https://github.com/C0z1/quantum-lab/actions/workflows/release.yml/badge.svg)](https://github.com/C0z1/quantum-lab/actions/workflows/release.yml)
@@ -25,10 +25,13 @@ El instalador de Windows se genera automáticamente en cada release:
 
 ## ✨ Características
 
-- **Tres algoritmos** con visualización dedicada:
+- **Seis algoritmos** con visualización dedicada:
   - **Grover** — columnas de energía de probabilidad + curva de convergencia + ondas de choque por iteración.
   - **Teletransportación** — esferas de Bloch + canal de entrelazamiento con partículas + explosión al completar (fidelidad 1.000).
   - **Shor** — factorización por estimación de fase (QPE); picos s/r del registro de conteo.
+  - **Deutsch-Jozsa** — decide constante vs balanceada en **una** consulta (phase kickback); veredicto sobre el registro de entrada.
+  - **Bernstein-Vazirani** — recupera la cadena oculta `a` en **una** consulta; pico único en `|a⟩`.
+  - **QFT** — un peine uniforme se transforma en picos espaciados: la base de Shor y la estimación de fase.
 - **Reproducción interactiva**: play/pausa, **paso a paso**, línea de tiempo con scrubbing y velocidad (0.5×–4×). Atajos: `Espacio`, `←`/`→`, `R`.
 - **Interfaz** de nivel workbench: telemetría en vivo, vector de estado, consola de eventos, campo de partículas y bloom.
 - **Motor C++** riguroso (Eigen3) que escala hasta 20 qubits, comunicado por **ZeroMQ + MessagePack**.
@@ -76,9 +79,9 @@ brew install cmake eigen zeromq cppzmq msgpack-cxx nlohmann-json googletest pyth
 ## ✅ Verificación
 
 ```bash
-cd packages/core-engine/build && ctest --output-on-failure   # 25/25 tests C++
-cd packages/qiskit-bridge && pytest tests/ -v                # 14/14 tests Qiskit
-python3 scripts/validate.py                                  # C++ ↔ Qiskit  (max|Δp| ≈ 1e-14)
+cd packages/core-engine/build && ctest --output-on-failure   # 31/31 tests C++
+cd packages/qiskit-bridge && pytest tests/ -v                # 35/35 tests Qiskit
+python3 scripts/validate.py                                  # C++ ↔ Qiskit, 6 algoritmos (max|Δp| ≈ 1e-14)
 ```
 
 | Golden value (Grover) | n | target | iters | P(target) |

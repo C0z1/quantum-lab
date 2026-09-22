@@ -39,6 +39,7 @@ add_library(quantum_core STATIC
     src/grover.cpp
     src/teleportation.cpp
     src/shor.cpp
+    src/basic_algos.cpp
 )
 target_include_directories(quantum_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src)
 if(TARGET Eigen3::Eigen)

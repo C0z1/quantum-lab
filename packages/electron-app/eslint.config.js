@@ -23,6 +23,16 @@ module.exports = [
     },
   },
   {
+    // preload.js vive en renderer/ pero es CommonJS y corre en el contexto de
+    // preload de Electron (require + node), no como modulo de navegador.
+    files: ['src/renderer/preload.js'],
+    languageOptions: {
+      ecmaVersion: 2022,
+      sourceType: 'commonjs',
+      globals: { ...globals.node },
+    },
+  },
+  {
     rules: {
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-empty': ['warn', { allowEmptyCatch: true }],

@@ -2,6 +2,7 @@
 #include "grover.h"
 #include "teleportation.h"
 #include "shor.h"
+#include "basic_algos.h"
 #include <nlohmann/json.hpp>
 #include <msgpack.hpp>
 #include <iostream>
@@ -180,6 +181,58 @@ std::string ZmqServer::dispatch(const std::string& json_cmd) {
         } catch (const std::exception& e) {
             return json{{"status", "ERROR"}, {"error", e.what()}}.dump();
         }
+    }
+
+    if (type == "RUN_DJ") {
+        const int n = j.value("n_qubits", 3);
+        const bool balanced = j.value("balanced", true);
+        if (n < 1 || n > 19) return json{{"status", "ERROR"}, {"error", "n en [1,19]"}}.dump();
+        auto pub = [&](int step, bool is_final, const Eigen::VectorXd& p) {
+            uint32_t nq = 0;
+            while ((uint64_t(1) << nq) < (uint64_t)p.size()) ++nq;
+            publishFrame(buildFrameFromProbs(static_cast<uint32_t>(step), is_final, nq, p));
+        };
+        auto r = basic_algos::deutschJozsa(n, balanced, pub);
+        return json{{"status", "ACK"},
+                    {"type", "RUN_DJ"},
+                    {"n_qubits", n},
+                    {"balanced", balanced},
+                    {"is_constant", r.is_constant}}
+            .dump();
+    }
+
+    if (type == "RUN_BV") {
+        const int n = j.value("n_qubits", 4);
+        const uint64_t hidden = j.value("hidden", 0ull);
+        if (n < 1 || n > 19) return json{{"status", "ERROR"}, {"error", "n en [1,19]"}}.dump();
+        if (hidden >= (1ull << n))
+            return json{{"status", "ERROR"}, {"error", "hidden < 2^n"}}.dump();
+        auto pub = [&](int step, bool is_final, const Eigen::VectorXd& p) {
+            uint32_t nq = 0;
+            while ((uint64_t(1) << nq) < (uint64_t)p.size()) ++nq;
+            publishFrame(buildFrameFromProbs(static_cast<uint32_t>(step), is_final, nq, p));
+        };
+        auto r = basic_algos::bernsteinVazirani(n, hidden, pub);
+        return json{{"status", "ACK"},
+                    {"type", "RUN_BV"},
+                    {"n_qubits", n},
+                    {"hidden", hidden},
+                    {"recovered", r.recovered}}
+            .dump();
+    }
+
+    if (type == "RUN_QFT") {
+        const int n = j.value("n_qubits", 4);
+        const int m = j.value("period_exp", 2);
+        if (n < 1 || n > 16) return json{{"status", "ERROR"}, {"error", "n en [1,16]"}}.dump();
+        auto pub = [&](int step, bool is_final, const Eigen::VectorXd& p) {
+            uint32_t nq = 0;
+            while ((uint64_t(1) << nq) < (uint64_t)p.size()) ++nq;
+            publishFrame(buildFrameFromProbs(static_cast<uint32_t>(step), is_final, nq, p));
+        };
+        basic_algos::qftDemo(n, m, pub);
+        return json{{"status", "ACK"}, {"type", "RUN_QFT"}, {"n_qubits", n}, {"period_exp", m}}
+            .dump();
     }
 
     if (type == "SHUTDOWN") {

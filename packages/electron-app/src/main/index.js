@@ -111,6 +111,30 @@ ipcMain.handle('quantum:run-teleportation', async (_evt, params) => {
   return bridge.sendCommand({ type: 'RUN_TELEPORTATION', theta, phi });
 });
 
+ipcMain.handle('quantum:run-dj', async (_evt, params) => {
+  const n = Number(params?.nQubits ?? 3);
+  const balanced = !!params?.balanced;
+  if (!Number.isInteger(n) || n < 1 || n > 19) throw new Error('n en [1,19]');
+  return bridge.sendCommand({ type: 'RUN_DJ', n_qubits: n, balanced });
+});
+
+ipcMain.handle('quantum:run-bv', async (_evt, params) => {
+  const n = Number(params?.nQubits ?? 4);
+  const hidden = Number(params?.hidden ?? 0);
+  if (!Number.isInteger(n) || n < 1 || n > 19) throw new Error('n en [1,19]');
+  if (!Number.isInteger(hidden) || hidden < 0 || hidden >= 1 << n)
+    throw new Error('hidden fuera de rango');
+  return bridge.sendCommand({ type: 'RUN_BV', n_qubits: n, hidden });
+});
+
+ipcMain.handle('quantum:run-qft', async (_evt, params) => {
+  const n = Number(params?.nQubits ?? 4);
+  const m = Number(params?.periodExp ?? 2);
+  if (!Number.isInteger(n) || n < 1 || n > 16) throw new Error('n en [1,16]');
+  if (!Number.isInteger(m) || m < 0 || m > n) throw new Error('period_exp en [0,n]');
+  return bridge.sendCommand({ type: 'RUN_QFT', n_qubits: n, period_exp: m });
+});
+
 ipcMain.handle('quantum:stop', async () => {
   return bridge ? bridge.sendCommand({ type: 'PING' }) : { status: 'ERROR' };
 });
