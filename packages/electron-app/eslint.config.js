@@ -4,7 +4,15 @@ const js = require('@eslint/js');
 const globals = require('globals');
 
 module.exports = [
-  { ignores: ['node_modules/**', 'dist/**', 'engine-bin/**', 'py-bin/**'] },
+  {
+    ignores: [
+      'node_modules/**',
+      'dist/**',
+      'engine-bin/**',
+      'py-bin/**',
+      'src/renderer/scene.bundle.js',
+    ],
+  },
   js.configs.recommended,
   {
     files: ['src/main/**/*.js', 'test-bridge.js', 'eslint.config.js'],

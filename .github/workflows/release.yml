@@ -79,6 +79,7 @@ jobs:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'   # sin firma de código (preview)
         run: |
           npm install --no-audit --no-fund
+          npm run bundle
           npx electron-builder --publish never
 
       - name: Upload artifact

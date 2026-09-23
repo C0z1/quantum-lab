@@ -5,14 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quantum Lab</title>
     <link rel="stylesheet" href="styles.css" />
-    <script type="importmap">
-      {
-        "imports": {
-          "three": "../../node_modules/three/build/three.module.js",
-          "three/addons/": "../../node_modules/three/examples/jsm/"
-        }
-      }
-    </script>
   </head>
   <body>
     <div id="app">
@@ -112,6 +104,8 @@
       <button class="present-exit" id="presentExit">Salir (Esc)</button>
     </div>
 
-    <script type="module" src="scene.js"></script>
+    <!-- Bundle autocontenido (three + addons + módulos del renderer) generado
+         por esbuild (npm run bundle). No depende de node_modules en runtime. -->
+    <script type="module" src="scene.bundle.js"></script>
   </body>
 </html>
