@@ -15,13 +15,13 @@ C++20 · Eigen3 · ZeroMQ  |  Python · Qiskit  |  Electron · Three.js
 
 </div>
 
-## ⬇️ Descargar (preview v1.0)
+## ⬇️ Descargar (preview)
 
 El instalador de Windows se genera automáticamente en cada release:
 
-**→ [Releases](https://github.com/C0z1/quantum-lab/releases) → `QuantumLab-Setup-1.0.0.exe`**
+**→ [Releases](https://github.com/C0z1/quantum-lab/releases) → `QuantumLab-Setup-<versión>.exe`** (usa el más reciente)
 
-> Preview inicial. La factorización de Shor y la validación con Qiskit son parte de las herramientas de desarrollo; el instalador incluye el motor C++ y la app.
+> Preview. La validación con Qiskit es parte de las herramientas de desarrollo; el instalador incluye el motor C++ y la app (no requiere Python en tiempo de ejecución). Al no estar firmado, Windows SmartScreen puede advertir: **Más información → Ejecutar de todas formas**.
 
 ## ✨ Características
 
