@@ -7,6 +7,11 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# M_PI y demas constantes de <cmath> en MSVC (inofensivo en GCC/Clang, que ya
+# las definen). Debe ir antes de cualquier include de <cmath>, por eso como
+# definicion global de compilacion.
+add_compile_definitions(_USE_MATH_DEFINES)
+
 # Flags de optimizacion/vectorizacion IDENTICAS en todas las TUs (alineacion de
 # Eigen), portables por compilador.
 if(MSVC)

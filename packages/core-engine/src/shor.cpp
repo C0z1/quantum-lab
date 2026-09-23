@@ -5,6 +5,17 @@
 
 namespace shor {
 
+// Multiplicacion modular portable: usa enteros de 128 bits en GCC/Clang y cae a
+// 64 bits en MSVC (que no tiene __uint128_t). Exacta mientras a,b < 2^32, lo que
+// se cumple de sobra para las N pequenas de esta app.
+static inline uint64_t mulmod(uint64_t a, uint64_t b, uint64_t m) {
+#if defined(__SIZEOF_INT128__)
+    return static_cast<uint64_t>((unsigned __int128)a * b % m);
+#else
+    return a * b % m;
+#endif
+}
+
 uint64_t gcd(uint64_t x, uint64_t y) {
     while (y) {
         uint64_t t = x % y;
@@ -18,8 +29,8 @@ uint64_t powmod(uint64_t base, uint64_t exp, uint64_t mod) {
     uint64_t result = 1 % mod;
     base %= mod;
     while (exp) {
-        if (exp & 1) result = (__uint128_t)result * base % mod;
-        base = (__uint128_t)base * base % mod;
+        if (exp & 1) result = mulmod(result, base, mod);
+        base = mulmod(base, base, mod);
         exp >>= 1;
     }
     return result;
@@ -29,7 +40,7 @@ uint64_t classicalOrder(uint64_t a, uint64_t N) {
     if (gcd(a, N) != 1) return 0;
     uint64_t r = 1, cur = a % N;
     while (cur != 1) {
-        cur = (__uint128_t)cur * a % N;
+        cur = mulmod(cur, a, N);
         ++r;
         if (r > N) return 0;  // salvaguarda
     }
