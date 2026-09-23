@@ -646,3 +646,294 @@ button.btn .ic {
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ============================================================================
+   v1.2 — botones de appbar, ajustes, circuito, tooltips, modo presentación
+   ========================================================================== */
+
+/* ---- Botones de icono en la appbar ---- */
+.iconbtn {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: var(--surface);
+  color: var(--fg-3);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.iconbtn:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.iconbtn.active {
+  background: var(--iris);
+  color: #fff;
+}
+.iconbtn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ---- Popover de ajustes ---- */
+.popover {
+  position: absolute;
+  top: 60px;
+  right: 26px;
+  width: 288px;
+  background: var(--surface);
+  border-radius: var(--r);
+  padding: 16px 18px 18px;
+  z-index: 40;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+.popover[hidden] {
+  display: none;
+}
+.pop-h {
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+  margin-bottom: 12px;
+}
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--fg-2);
+  cursor: pointer;
+  margin-top: 12px;
+}
+.switch input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--iris);
+  cursor: pointer;
+}
+
+/* ---- Panel de circuito (overlay sobre el stage) ---- */
+.circuit-panel {
+  position: absolute;
+  top: 20px;
+  right: 22px;
+  max-width: min(560px, 52%);
+  background: rgba(12, 12, 16, 0.82);
+  backdrop-filter: blur(12px);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  z-index: 12;
+}
+.circuit-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 14px;
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+}
+.circuit-h-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.circuit-note {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--fg-3);
+}
+.circuit-toggle {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--fg-2);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+.circuit-toggle:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.circuit-body {
+  padding: 4px 12px 12px;
+  overflow-x: auto;
+}
+.circuit-body.collapsed {
+  display: none;
+}
+
+/* SVG del circuito */
+.circ-svg {
+  display: block;
+}
+.circ-wire {
+  stroke: var(--fg-mut);
+  stroke-width: 1.1;
+  opacity: 0.5;
+}
+.circ-wlabel {
+  fill: var(--fg-3);
+  font-family: var(--mono);
+  font-size: 10px;
+}
+.circ-col {
+  fill: transparent;
+  transition:
+    fill 0.18s,
+    stroke 0.18s;
+  stroke: transparent;
+  stroke-width: 1;
+}
+.circ-col.on {
+  fill: var(--iris-soft);
+  stroke: rgba(128, 82, 255, 0.4);
+}
+.circ-box {
+  fill: #16121f;
+  stroke: var(--iris);
+  stroke-width: 1.3;
+}
+.circ-gtext {
+  fill: #fff;
+  font-family: var(--mono);
+  font-size: 11px;
+  text-anchor: middle;
+  font-weight: 500;
+}
+.circ-link {
+  stroke: var(--iris);
+  stroke-width: 1.6;
+}
+.circ-ctrl {
+  fill: var(--iris);
+}
+.circ-xor {
+  fill: none;
+  stroke: var(--iris);
+  stroke-width: 1.6;
+}
+.circ-plus {
+  stroke: var(--iris);
+  stroke-width: 1.6;
+}
+.circ-mbox {
+  fill: #16121f;
+  stroke: var(--saffron);
+  stroke-width: 1.2;
+}
+.circ-marc {
+  fill: none;
+  stroke: var(--saffron);
+  stroke-width: 1.3;
+}
+.circ-mneedle {
+  stroke: var(--saffron);
+  stroke-width: 1.3;
+}
+.circ-repeat {
+  fill: var(--saffron);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-anchor: middle;
+}
+.circ-gate {
+  cursor: help;
+}
+.circ-gate:hover .circ-box,
+.circ-gate:hover .circ-mbox {
+  filter: brightness(1.4);
+}
+
+/* ---- Tooltip pedagógico ---- */
+.tooltip {
+  position: fixed;
+  z-index: 100;
+  max-width: 260px;
+  background: #1b1b21;
+  color: var(--fg);
+  font-size: 12px;
+  line-height: 1.45;
+  padding: 9px 12px;
+  border-radius: 10px;
+  pointer-events: none;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+}
+.tooltip[hidden] {
+  display: none;
+}
+.hud .pill[data-tip],
+.metric[data-tip] {
+  cursor: help;
+}
+
+/* ---- Modo presentación ---- */
+body.presenting .rail-left,
+body.presenting .rail-right,
+body.presenting .statusbar,
+body.presenting .appbar .chip,
+body.presenting .circuit-panel {
+  display: none;
+}
+body.presenting #app {
+  grid-template-columns: 0 1fr 0;
+  grid-template-rows: 66px 1fr 0;
+}
+.present-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 22px 28px;
+}
+.present-overlay[hidden] {
+  display: none;
+}
+.present-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.present-badge {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  color: #fff;
+  background: var(--iris);
+  padding: 5px 11px;
+  border-radius: var(--pill);
+}
+#presentName {
+  font-size: 15px;
+  color: var(--fg);
+}
+.present-exit {
+  pointer-events: auto;
+  border: none;
+  background: rgba(20, 20, 26, 0.8);
+  color: var(--fg-2);
+  font-size: 12px;
+  padding: 8px 15px;
+  border-radius: var(--pill);
+  cursor: pointer;
+}
+.present-exit:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}

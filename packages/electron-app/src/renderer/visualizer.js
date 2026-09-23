@@ -180,6 +180,22 @@ export class QuantumVisualizer {
     this.blochGroup.visible = mode === 'bloch';
   }
 
+  // ---- Ajustes en vivo (panel de configuración) ----
+  setBloom(strength) {
+    // 0 = sin resplandor; el máximo del slider (1.6) es un bloom intenso.
+    if (this.bloom) this.bloom.strength = Math.max(0, strength);
+  }
+
+  setParticles(on) {
+    // Campo de estrellas de fondo; los FX puntuales (ráfagas) se saltan aparte.
+    this._particlesOn = on;
+    if (this.stars) this.stars.visible = !!on;
+  }
+
+  setAutoRotate(on) {
+    if (this.controls) this.controls.autoRotate = !!on;
+  }
+
   // ------------------------------------------------------------------ BARRAS
   initBars(stateSize) {
     this._clearGroup(this.barsGroup);
@@ -514,6 +530,7 @@ export class QuantumVisualizer {
 
   // ------------------------------------------------------------------ FX
   _spawnRing(x, color) {
+    if (this._particlesOn === false) return;
     const mesh = new THREE.Mesh(
       new THREE.RingGeometry(0.6, 0.9, 48),
       new THREE.MeshBasicMaterial({
@@ -532,6 +549,7 @@ export class QuantumVisualizer {
   }
 
   _spawnBurst(center, color) {
+    if (this._particlesOn === false) return;
     const NP = 140;
     const pos = new Float32Array(NP * 3);
     const vel = [];

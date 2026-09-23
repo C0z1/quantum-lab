@@ -1,6 +1,25 @@
 // ui.js — construye el shell empresarial (nav de algoritmos, panel de parámetros,
 // telemetría, tabla de amplitudes, consola de eventos, status bar, HUD) y expone
 // una API para que scene.js lo alimente. No toca Three.js ni el IPC.
+import { buildCircuit, renderCircuitSVG, GATE_TIPS } from './circuit.js';
+
+// Glosario para tooltips pedagógicos (pills de la HUD y términos).
+const GLOSSARY = {
+  ...GATE_TIPS,
+  prep: 'Preparación: se lleva el registro a la superposición inicial con Hadamard.',
+  oráculo: 'Oráculo: marca (con fase) los estados que cumplen la condición buscada.',
+  difusor: 'Difusor: refleja las amplitudes sobre su media, amplificando lo marcado.',
+  medida: 'Medida: colapsa el estado a un resultado clásico con probabilidad |α|².',
+  'H⊗ⁿ': 'H sobre cada qubit: superposición uniforme de los 2ⁿ estados.',
+  'mod-exp': 'Exponenciación modular controlada: codifica el orden r en la fase.',
+  'QFT⁻¹': 'QFT inversa: convierte la fase periódica en picos del registro de conteo.',
+  QFT: 'Transformada de Fourier Cuántica: revela periodicidad como frecuencias.',
+  peine: 'Peine: superposición uniforme espaciada 2^m en posición.',
+  picos: 'Picos: tras la QFT, la energía se concentra en frecuencias equiespaciadas.',
+  Bell: 'Par de Bell: dos qubits máximamente entrelazados vía H + CNOT.',
+  corrige: 'Correcciones X/Z condicionadas a la medida restauran |ψ⟩ en el destino.',
+  'prep |ψ⟩': 'Se prepara el estado desconocido |ψ⟩ que será teletransportado.',
+};
 
 const ICONS = {
   grover:
@@ -31,11 +50,25 @@ const ALGOS = {
 };
 
 export class UIController {
-  constructor({ onRun, onReset, onTab, onPlay, onStep, onSeek, onRestart, onSpeed }) {
-    this.onRun = onRun;
-    this.onReset = onReset;
-    this.onTab = onTab;
-    this.pb = { onPlay, onStep, onSeek, onRestart, onSpeed };
+  constructor(cb) {
+    this.onRun = cb.onRun;
+    this.onReset = cb.onReset;
+    this.onTab = cb.onTab;
+    this.pb = {
+      onPlay: cb.onPlay,
+      onStep: cb.onStep,
+      onSeek: cb.onSeek,
+      onRestart: cb.onRestart,
+      onSpeed: cb.onSpeed,
+    };
+    // Ajustes y presentación (opcionales).
+    this.settings = {
+      onBloom: cb.onBloom || (() => {}),
+      onDefaultSpeed: cb.onDefaultSpeed || (() => {}),
+      onParticles: cb.onParticles || (() => {}),
+      onAutoRotate: cb.onAutoRotate || (() => {}),
+    };
+    this.onPresentToggle = cb.onPresentToggle || (() => {});
     this.algo = 'grover';
     this.$ = (id) => document.getElementById(id);
     this._buildLeft();
@@ -43,8 +76,135 @@ export class UIController {
     this._buildStatus();
     this._buildPlayback();
     this._buildParams('grover');
+    this._buildCircuit();
+    this._buildTooltips();
+    this._buildSettings();
     this.chartCanvas = this.$('chart');
     this.setHud('grover');
+  }
+
+  // ---------------- VISTA DE CIRCUITO ----------------
+  _buildCircuit() {
+    this._circuitCollapsed = false;
+    const t = this.$('circuitToggle');
+    if (t)
+      t.addEventListener('click', () => {
+        this._circuitCollapsed = !this._circuitCollapsed;
+        this.$('circuit').classList.toggle('collapsed', this._circuitCollapsed);
+        t.textContent = this._circuitCollapsed ? '+' : '−';
+      });
+  }
+
+  setCircuit(algo, params) {
+    const host = this.$('circuit');
+    if (!host) return;
+    const model = buildCircuit(algo, params);
+    host.innerHTML = renderCircuitSVG(model);
+    const note = this.$('circuitNote');
+    if (note) note.textContent = model.note || '';
+    this._circuitStep = -1;
+  }
+
+  highlightCircuitStep(step) {
+    const host = this.$('circuit');
+    if (!host || step === this._circuitStep) return;
+    this._circuitStep = step;
+    host.querySelectorAll('.circ-col').forEach((c) => {
+      c.classList.toggle('on', Number(c.dataset.step) === step);
+    });
+  }
+
+  // ---------------- TOOLTIPS PEDAGÓGICOS ----------------
+  _buildTooltips() {
+    const tip = this.$('tooltip');
+    if (!tip) return;
+    const show = (key, x, y) => {
+      const text = GLOSSARY[key];
+      if (!text) return;
+      tip.textContent = text;
+      tip.hidden = false;
+      const pad = 14;
+      const w = tip.offsetWidth,
+        h = tip.offsetHeight;
+      let left = x + pad,
+        top = y + pad;
+      if (left + w > window.innerWidth - 8) left = x - w - pad;
+      if (top + h > window.innerHeight - 8) top = y - h - pad;
+      tip.style.left = Math.max(8, left) + 'px';
+      tip.style.top = Math.max(8, top) + 'px';
+    };
+    document.addEventListener('mouseover', (e) => {
+      const el = e.target.closest('[data-tip]');
+      if (el) show(el.dataset.tip, e.clientX, e.clientY);
+    });
+    document.addEventListener('mousemove', (e) => {
+      if (tip.hidden) return;
+      const el = e.target.closest('[data-tip]');
+      if (!el) {
+        tip.hidden = true;
+        return;
+      }
+      show(el.dataset.tip, e.clientX, e.clientY);
+    });
+    document.addEventListener('mouseout', (e) => {
+      if (e.target.closest('[data-tip]')) tip.hidden = true;
+    });
+  }
+
+  // ---------------- PANEL DE AJUSTES ----------------
+  _buildSettings() {
+    const pop = this.$('settings');
+    const btn = this.$('btnSettings');
+    if (!pop || !btn) return;
+    const SPEEDS = [0.5, 1, 2, 4];
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pop.hidden = !pop.hidden;
+      btn.classList.toggle('active', !pop.hidden);
+    });
+    document.addEventListener('click', (e) => {
+      if (!pop.hidden && !pop.contains(e.target) && e.target !== btn) {
+        pop.hidden = true;
+        btn.classList.remove('active');
+      }
+    });
+    const bloom = this.$('set_bloom');
+    bloom.addEventListener('input', () => {
+      this.$('set_bloomV').textContent = (+bloom.value).toFixed(2);
+      this.settings.onBloom(+bloom.value);
+    });
+    const speed = this.$('set_speed');
+    speed.addEventListener('input', () => {
+      const idx = +speed.value;
+      this.$('set_speedV').textContent = SPEEDS[idx] + '×';
+      this.settings.onDefaultSpeed(idx);
+    });
+    const parts = this.$('set_particles');
+    parts.addEventListener('change', () => this.settings.onParticles(parts.checked));
+    const rot = this.$('set_autorot');
+    rot.addEventListener('change', () => this.settings.onAutoRotate(rot.checked));
+  }
+
+  setPresenting(on) {
+    document.body.classList.toggle('presenting', on);
+    this.$('presentOverlay').hidden = !on;
+    const b = this.$('btnPresent');
+    if (b) b.classList.toggle('active', on);
+  }
+
+  setPresentName(name) {
+    const el = this.$('presentName');
+    if (el) el.textContent = name;
+  }
+
+  // Sincroniza el rail izquierdo (nav + parámetros) con un algoritmo, sin
+  // relanzar la configuración (se usa al salir del modo presentación).
+  focusAlgo(algo) {
+    this.algo = algo;
+    this.$('railLeft')
+      .querySelectorAll('.nav .item')
+      .forEach((b) => b.classList.toggle('active', b.dataset.algo === algo));
+    this._buildParams(algo);
   }
 
   _buildPlayback() {
@@ -146,6 +306,10 @@ export class UIController {
       .forEach((b) => b.addEventListener('click', () => this._selectTab(b.dataset.algo)));
     this.$('run').addEventListener('click', () => this.onRun(this.algo, this.getParams()));
     this.$('reset').addEventListener('click', () => this.onReset());
+    const present = this.$('btnPresent');
+    if (present) present.addEventListener('click', () => this.onPresentToggle());
+    const presentExit = this.$('presentExit');
+    if (presentExit) presentExit.addEventListener('click', () => this.onPresentToggle());
   }
 
   _buildParams(algo) {
@@ -370,7 +534,9 @@ export class UIController {
     this.$('hudSub').textContent = a.hudSub;
     if (pills)
       this.$('hudPills').innerHTML = pills
-        .map((p) => `<span class="pill ${p.on ? 'on' : ''}">${p.label}</span>`)
+        .map(
+          (p) => `<span class="pill ${p.on ? 'on' : ''}" data-tip="${p.label}">${p.label}</span>`
+        )
         .join('');
     else this.$('hudPills').innerHTML = '';
   }

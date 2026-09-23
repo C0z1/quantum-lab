@@ -20,6 +20,15 @@ const ui = new UIController({
     setCursor(i, i > state.cursor);
   },
   onSpeed: () => cycleSpeed(),
+  // Ajustes en vivo.
+  onBloom: (v) => viz.setBloom(v),
+  onParticles: (on) => viz.setParticles(on),
+  onAutoRotate: (on) => viz.setAutoRotate(on),
+  onDefaultSpeed: (idx) => {
+    state.speedIdx = idx;
+    ui.setPlayback({ speed: SPEEDS[idx] });
+  },
+  onPresentToggle: () => togglePresent(),
 });
 const chart = new Chart2D(ui.chartCanvas);
 
@@ -39,6 +48,8 @@ const state = {
   frames: 0,
   lastT: 0,
   params: null,
+  presenting: false,
+  presentTimer: null,
 };
 
 const PILLS = {
@@ -207,6 +218,7 @@ function configureFor(algo, params) {
     algo,
     PILLS[algo].map((p) => ({ label: p, on: false }))
   );
+  ui.setCircuit(algo, params);
 }
 
 function resetRun() {
@@ -418,6 +430,7 @@ function updatePills(step) {
     state.algo,
     PILLS[state.algo].map((p, i) => ({ label: p, on: i <= step }))
   );
+  ui.highlightCircuitStep(step);
 }
 
 // bucle de reproducción
@@ -484,7 +497,76 @@ window.addEventListener('keydown', (e) => {
     stepBy(-1);
   } else if (e.key === 'r' || e.key === 'R') {
     setCursor(0, false);
+  } else if (e.key === 'Escape' && state.presenting) {
+    stopPresent();
   }
+});
+
+// ---------------- modo presentación ----------------
+const PRESENT_ORDER = ['grover', 'teleport', 'shor', 'dj', 'bv', 'qft'];
+const PRESENT_NAMES = {
+  grover: 'Grover · búsqueda cuántica',
+  teleport: 'Teletransportación · fidelidad 1.000',
+  shor: 'Shor · factorización',
+  dj: 'Deutsch-Jozsa · constante vs balanceada',
+  bv: 'Bernstein-Vazirani · cadena oculta',
+  qft: 'QFT · transformada de Fourier',
+};
+const PRESENT_DWELL = 7000; // ms por algoritmo
+
+function presentDefaults(algo) {
+  switch (algo) {
+    case 'grover':
+      return { nQubits: 3, targetState: 5, iterations: 0 };
+    case 'teleport':
+      return { theta: Math.PI / 3, phi: Math.PI / 4 };
+    case 'shor':
+      return { N: 15, a: 7 };
+    case 'dj':
+      return { nQubits: 3, balanced: true };
+    case 'bv':
+      return { nQubits: 4, hidden: 11 };
+    default:
+      return { nQubits: 4, periodExp: 2 }; // qft
+  }
+}
+
+function togglePresent() {
+  if (state.presenting) stopPresent();
+  else startPresent();
+}
+
+function startPresent() {
+  state.presenting = true;
+  ui.setPresenting(true);
+  if (document.documentElement.requestFullscreen)
+    document.documentElement.requestFullscreen().catch(() => {});
+  // Reflow del lienzo tras cambiar el layout.
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
+  presentStep(0);
+}
+
+function stopPresent() {
+  state.presenting = false;
+  clearTimeout(state.presentTimer);
+  ui.setPresenting(false);
+  if (document.fullscreenElement && document.exitFullscreen)
+    document.exitFullscreen().catch(() => {});
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 120);
+  ui.focusAlgo(state.algo); // sincroniza el rail con lo último mostrado
+}
+
+function presentStep(i) {
+  if (!state.presenting) return;
+  const algo = PRESENT_ORDER[i % PRESENT_ORDER.length];
+  ui.setPresentName(PRESENT_NAMES[algo]);
+  runAlgorithm(algo, presentDefaults(algo));
+  state.presentTimer = setTimeout(() => presentStep(i + 1), PRESENT_DWELL);
+}
+
+// Si el usuario sale de pantalla completa por otros medios, cerramos el modo.
+document.addEventListener('fullscreenchange', () => {
+  if (!document.fullscreenElement && state.presenting) stopPresent();
 });
 
 // Estado inicial.
