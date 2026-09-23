@@ -27,7 +27,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          vcpkg install zeromq cppzmq msgpack-cxx eigen3 nlohmann-json --triplet x64-windows
+          vcpkg install zeromq cppzmq msgpack eigen3 nlohmann-json --triplet x64-windows
           cmake -B build -S packages/core-engine -DCMAKE_BUILD_TYPE=Release `
             -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
             -DVCPKG_TARGET_TRIPLET=x64-windows

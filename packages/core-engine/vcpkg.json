@@ -4,7 +4,7 @@
   "dependencies": [
     "zeromq",
     "cppzmq",
-    "msgpack-cxx",
+    "msgpack",
     "eigen3",
     "nlohmann-json",
     "gtest"
