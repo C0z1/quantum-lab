@@ -22,6 +22,10 @@ class QuantumBridge extends EventEmitter {
     this._sub = new Subscriber();
     this._connected = false;
     this._running = false;
+    // Cola de envíos: el socket REQ de ZeroMQ exige un ciclo send→receive por
+    // vez. Sin serializar, dos comandos concurrentes (p. ej. reejecutar o
+    // cambiar de algoritmo a medio correr) chocan con "Socket is busy writing".
+    this._sendQueue = Promise.resolve();
   }
 
   async connect() {
@@ -36,8 +40,17 @@ class QuantumBridge extends EventEmitter {
   }
 
   // Envia un comando (objeto) como JSON por REQ y espera el ACK JSON.
+  // Se encola tras el comando anterior para respetar el ciclo estricto
+  // send→receive del socket REQ (evita "Socket is busy writing").
   async sendCommand(cmd) {
     if (!this._connected) throw new Error('bridge not connected');
+    const result = this._sendQueue.then(() => this._sendNow(cmd));
+    // La cadena sigue viva aunque este comando falle o expire.
+    this._sendQueue = result.catch(() => {});
+    return result;
+  }
+
+  async _sendNow(cmd) {
     await this._req.send(JSON.stringify(cmd));
     const [reply] = await this._req.receive();
     return JSON.parse(reply.toString());
@@ -77,10 +90,10 @@ class QuantumBridge extends EventEmitter {
     this._connected = false;
     try {
       this._sub.close();
-    } catch (_) {}
+    } catch {}
     try {
       this._req.close();
-    } catch (_) {}
+    } catch {}
     this.emit('status', { connected: false });
   }
 }

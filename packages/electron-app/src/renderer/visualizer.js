@@ -4,7 +4,40 @@ import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
+
+// Post-proceso final: viñeta + grano de película sutil (cinematográfico).
+const VignetteGrainShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    uTime: { value: 0 },
+    uVignette: { value: 1.15 },
+    uGrain: { value: 0.05 },
+  },
+  vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+  fragmentShader: `
+    varying vec2 vUv;
+    uniform sampler2D tDiffuse;
+    uniform float uTime, uVignette, uGrain;
+    float rand(vec2 c){ return fract(sin(dot(c, vec2(12.9898,78.233))) * 43758.5453); }
+    void main(){
+      vec4 col = texture2D(tDiffuse, vUv);
+      // grading: +contraste suave, +saturación y tinte iris en las sombras
+      float lum = dot(col.rgb, vec3(0.299, 0.587, 0.114));
+      col.rgb = (col.rgb - 0.5) * 1.06 + 0.5;
+      col.rgb = mix(vec3(lum), col.rgb, 1.1);
+      col.rgb += vec3(0.028, 0.0, 0.055) * (1.0 - lum);
+      // viñeta radial
+      vec2 d = vUv - 0.5;
+      float vig = smoothstep(0.92, 0.32, length(d) * uVignette);
+      col.rgb *= mix(0.68, 1.0, vig);
+      // grano temporal
+      float g = (rand(vUv + fract(uTime)) - 0.5) * uGrain;
+      col.rgb += g;
+      gl_FragColor = col;
+    }`,
+};
 
 // Textura de partícula suave (glow radial) compartida.
 function softParticleTexture() {
@@ -28,15 +61,24 @@ const PARTICLE_TEX = softParticleTexture();
 export class QuantumVisualizer {
   constructor(canvas) {
     this.canvas = canvas;
-    this.renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer = new THREE.WebGLRenderer({
+      canvas,
+      antialias: true,
+      powerPreference: 'high-performance',
+    });
+    // Cap del pixel ratio: en pantallas HiDPI, DPR=2 cuadruplica el coste de
+    // fragmentos. 1.5 se ve nítido y sube mucho los FPS.
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.setSize(canvas.clientWidth, canvas.clientHeight, false);
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    this.renderer.toneMappingExposure = 1.12;
+    this._lite = false;
 
     this.scene = new THREE.Scene();
-    this.scene.background = new THREE.Color(0x000000);
-    this.scene.fog = new THREE.FogExp2(0x000000, 0.012);
+    // Fondo espacio-profundo tintado (coherente con el chrome), no negro plano;
+    // la niebla índigo da profundidad y funde el horizonte con la nebulosa.
+    this.scene.background = new THREE.Color(0x05060e);
+    this.scene.fog = new THREE.FogExp2(0x070816, 0.013);
 
     // Paleta alineada al lenguaje "Dala": iris (primario), ámbar y teal.
     this.C = { iris: 0x8052ff, saffron: 0xffb829, teal: 0x2ee6b0 };
@@ -59,12 +101,16 @@ export class QuantumVisualizer {
     this.composer.addPass(new RenderPass(this.scene, this.camera));
     this.bloom = new UnrealBloomPass(
       new THREE.Vector2(canvas.clientWidth, canvas.clientHeight),
-      0.7,
-      0.5,
-      0.8
+      1.15,
+      0.6,
+      0.72
     );
+    this._bloomBase = 1.15;
     this.composer.addPass(this.bloom);
     this.composer.addPass(new OutputPass());
+    // Viñeta + grano al final (en espacio sRGB, tras OutputPass).
+    this.grainPass = new ShaderPass(VignetteGrainShader);
+    this.composer.addPass(this.grainPass);
 
     this.clock = new THREE.Clock();
     this.mode = 'bars';
@@ -87,7 +133,9 @@ export class QuantumVisualizer {
     this._burstDone = false;
 
     this._addLights();
+    this._addNebula();
     this._addStarfield();
+    this._addDust();
     this._addFloor();
     this._onResize = this._onResize.bind(this);
     window.addEventListener('resize', this._onResize);
@@ -95,20 +143,64 @@ export class QuantumVisualizer {
   }
 
   _addLights() {
-    this.scene.add(new THREE.AmbientLight(0x8a7bd0, 0.38));
-    const key = new THREE.DirectionalLight(0xe6dcff, 0.65);
+    this.scene.add(new THREE.AmbientLight(0x8a7bd0, 0.36));
+    const key = new THREE.DirectionalLight(0xe6dcff, 0.68);
     key.position.set(6, 16, 8);
     this.scene.add(key);
-    const p1 = new THREE.PointLight(this.C.iris, 1.2, 80);
+    const p1 = new THREE.PointLight(this.C.iris, 1.25, 80);
     p1.position.set(-16, 7, -6);
     this.scene.add(p1);
     const p2 = new THREE.PointLight(this.C.saffron, 0.7, 80);
     p2.position.set(16, 6, 8);
     this.scene.add(p2);
+    // Realce teal desde abajo/atrás: separa las columnas del fondo con un halo
+    // frío (lenguaje "medición") y da lectura volumétrica. Barato: 1 PointLight.
+    const rim = new THREE.PointLight(this.C.teal, 0.55, 70);
+    rim.position.set(0, 2.5, -14);
+    this.scene.add(rim);
+  }
+
+  _addNebula() {
+    // Fondo tipo nebulosa: esfera envolvente con nubes procedurales suaves en
+    // iris/teal, aditiva y muy sutil, para dar profundidad sin robar foco.
+    const geo = new THREE.SphereGeometry(180, 32, 24);
+    this.nebulaMat = new THREE.ShaderMaterial({
+      side: THREE.BackSide,
+      transparent: true,
+      depthWrite: false,
+      uniforms: {
+        uTime: { value: 0 },
+        uIris: { value: new THREE.Color(this.C.iris) },
+        uTeal: { value: new THREE.Color(this.C.teal) },
+      },
+      vertexShader: `varying vec3 vPos; void main(){ vPos = position; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `
+        varying vec3 vPos;
+        uniform float uTime; uniform vec3 uIris, uTeal;
+        // ruido de valor + fbm
+        float hash(vec3 p){ p = fract(p*0.3183099+0.1); p*=17.0; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+        float noise(vec3 x){ vec3 i=floor(x); vec3 f=fract(x); f=f*f*(3.0-2.0*f);
+          return mix(mix(mix(hash(i+vec3(0,0,0)),hash(i+vec3(1,0,0)),f.x),
+                         mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
+                     mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),
+                         mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z); }
+        float fbm(vec3 p){ float s=0.0,a=0.5; for(int i=0;i<3;i++){ s+=a*noise(p); p*=2.02; a*=0.5;} return s; }
+        void main(){
+          vec3 dir = normalize(vPos);
+          float n = fbm(dir*2.2 + vec3(0.0, uTime*0.02, uTime*0.015));
+          n = smoothstep(0.45, 1.0, n);
+          float band = pow(max(0.0, 1.0 - abs(dir.y)*1.3), 2.0); // más denso cerca del horizonte
+          vec3 col = mix(uIris, uTeal, fbm(dir*1.3 - uTime*0.01));
+          float a = n * band * 0.16;
+          gl_FragColor = vec4(col * a * 2.2, a);
+        }`,
+    });
+    this.nebula = new THREE.Mesh(geo, this.nebulaMat);
+    this.scene.add(this.nebula);
   }
 
   _addStarfield() {
-    const N = 2400;
+    const N = 3400;
     const pos = new Float32Array(N * 3),
       col = new Float32Array(N * 3);
     const palette = [
@@ -148,18 +240,57 @@ export class QuantumVisualizer {
     this.scene.add(this.stars);
   }
 
+  _addDust() {
+    // Polvo cuántico: partículas cercanas que flotan y dan profundidad y vida a
+    // la escena (barato: un solo Points aditivo que gira lento).
+    const N = 700;
+    const pos = new Float32Array(N * 3);
+    const col = new Float32Array(N * 3);
+    const palette = [
+      new THREE.Color(this.C.iris),
+      new THREE.Color(this.C.teal),
+      new THREE.Color(0xbfaaff),
+      new THREE.Color(0xffffff),
+    ];
+    for (let i = 0; i < N; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 70;
+      pos[i * 3 + 1] = Math.random() * 34 - 3;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 70;
+      const c = palette[(Math.random() * palette.length) | 0];
+      col[i * 3] = c.r;
+      col[i * 3 + 1] = c.g;
+      col[i * 3 + 2] = c.b;
+    }
+    const g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+    this.dust = new THREE.Points(
+      g,
+      new THREE.PointsMaterial({
+        size: 0.13,
+        map: PARTICLE_TEX,
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      })
+    );
+    this.scene.add(this.dust);
+  }
+
   _addFloor() {
     try {
       this.mirror = new Reflector(new THREE.PlaneGeometry(220, 220), {
         clipBias: 0.003,
-        textureWidth: 1024,
-        textureHeight: 1024,
+        textureWidth: 512,
+        textureHeight: 512,
         color: 0x0a1526,
       });
       this.mirror.rotation.x = -Math.PI / 2;
       this.mirror.position.y = -0.02;
       this.scene.add(this.mirror);
-    } catch (e) {
+    } catch {
       const floor = new THREE.Mesh(
         new THREE.PlaneGeometry(220, 220),
         new THREE.MeshStandardMaterial({ color: 0x070c16, metalness: 0.6, roughness: 0.25 })
@@ -167,9 +298,9 @@ export class QuantumVisualizer {
       floor.rotation.x = -Math.PI / 2;
       this.scene.add(floor);
     }
-    this.grid = new THREE.GridHelper(120, 60, 0x2a2442, 0x141220);
+    this.grid = new THREE.GridHelper(120, 60, 0x3a2f6b, 0x161334);
     this.grid.material.transparent = true;
-    this.grid.material.opacity = 0.5;
+    this.grid.material.opacity = 0.45;
     this.grid.position.y = 0.01;
     this.scene.add(this.grid);
   }
@@ -182,8 +313,20 @@ export class QuantumVisualizer {
 
   // ---- Ajustes en vivo (panel de configuración) ----
   setBloom(strength) {
-    // 0 = sin resplandor; el máximo del slider (1.6) es un bloom intenso.
-    if (this.bloom) this.bloom.strength = Math.max(0, strength);
+    // 0 = sin resplandor; el máximo del slider es un bloom intenso.
+    this._bloomBase = Math.max(0, strength);
+    if (this.bloom && !this._lite) this.bloom.strength = this._bloomBase;
+  }
+
+  // Modo alto rendimiento: apaga los efectos caros (reflejo, nebulosa, polvo,
+  // grano) y baja el bloom, para equipos con GPU modesta.
+  setLiteMode(on) {
+    this._lite = !!on;
+    if (this.nebula) this.nebula.visible = !on;
+    if (this.mirror) this.mirror.visible = !on;
+    if (this.dust) this.dust.visible = !on;
+    if (this.grainPass) this.grainPass.enabled = !on;
+    if (this.bloom) this.bloom.strength = on ? Math.min(this._bloomBase, 0.6) : this._bloomBase;
   }
 
   setParticles(on) {
@@ -211,11 +354,11 @@ export class QuantumVisualizer {
     for (let i = 0; i < stateSize; i++) {
       const geo = new THREE.BoxGeometry(bw, 1, 0.85);
       const mat = new THREE.MeshStandardMaterial({
-        color: 0x0a0a12,
+        color: 0x07070d,
         emissive: new THREE.Color(0x2a1e55),
         emissiveIntensity: 1.1,
-        metalness: 0.5,
-        roughness: 0.3,
+        metalness: 0.72,
+        roughness: 0.16,
       });
       const bar = new THREE.Mesh(geo, mat);
       bar.position.set(-totalWidth / 2 + i * spacing, 0.5, 0);
@@ -332,14 +475,16 @@ export class QuantumVisualizer {
       bar.scale.y += (targetH - bar.scale.y) * 0.13;
       bar.position.y = bar.scale.y / 2;
       const rel = Math.min(1, prob * nStates);
-      const hue = 0.72 - 0.05 * rel; // iris/violeta
-      const pulse = 1 + 0.18 * Math.sin(t * 3 + i * 0.4);
+      const pulse = 1 + 0.16 * Math.sin(t * 3 + i * 0.4);
       if (i === this.targetIndex) {
-        bar.material.emissive.setHSL(0.11, 0.95, 0.5); // saffron
-        bar.material.emissiveIntensity = (1.0 + 0.5 * rel) * pulse;
+        // Solución = ámbar intenso.
+        bar.material.emissive.setHSL(0.11, 0.95, 0.52);
+        bar.material.emissiveIntensity = (1.6 + 0.9 * rel) * pulse;
       } else {
-        bar.material.emissive.setHSL(hue, 0.8, 0.32 + 0.16 * rel);
-        bar.material.emissiveIntensity = (0.4 + 0.9 * rel) * pulse;
+        // Amplitud = de índigo apagado (baja prob) a violeta eléctrico (alta).
+        const hue = 0.7 - 0.04 * rel;
+        bar.material.emissive.setHSL(hue, 0.9, 0.26 + 0.28 * rel);
+        bar.material.emissiveIntensity = (0.45 + 1.7 * rel) * pulse;
       }
     }
     // Haces: siguen la altura de su barra.
@@ -390,17 +535,17 @@ export class QuantumVisualizer {
         new THREE.Mesh(
           new THREE.SphereGeometry(R, 30, 20),
           new THREE.MeshBasicMaterial({
-            color: 0x2b4a7a,
+            color: 0x4a458f,
             wireframe: true,
             transparent: true,
-            opacity: 0.3,
+            opacity: 0.28,
           })
         )
       );
       root.add(
         new THREE.Mesh(
           new THREE.SphereGeometry(R * 0.99, 32, 24),
-          new THREE.MeshBasicMaterial({ color: 0x0a1830, transparent: true, opacity: 0.25 })
+          new THREE.MeshBasicMaterial({ color: 0x0b1024, transparent: true, opacity: 0.28 })
         )
       );
       // ecuador brillante
@@ -506,7 +651,7 @@ export class QuantumVisualizer {
     }
   }
 
-  _tickBloch(dt, t) {
+  _tickBloch(dt, _t) {
     for (const bq of this.blochQubits) {
       bq.currentDir.lerp(bq.targetDir, 0.1);
       const dir = bq.currentDir.clone().normalize();
@@ -582,6 +727,10 @@ export class QuantumVisualizer {
 
   _animateFX(dt, t) {
     if (this.stars) this.stars.rotation.y += dt * 0.012;
+    if (this.dust && this.dust.visible) {
+      this.dust.rotation.y -= dt * 0.03;
+      this.dust.position.y = Math.sin(t * 0.3) * 0.6;
+    }
     for (let k = this.rings.length - 1; k >= 0; k--) {
       const r = this.rings[k];
       r.age += dt;
@@ -686,6 +835,8 @@ export class QuantumVisualizer {
       if (this.mode === 'bars') this._tickBars(dt, t);
       else this._tickBloch(dt, t);
       this._animateFX(dt, t);
+      if (this.nebulaMat) this.nebulaMat.uniforms.uTime.value = t;
+      if (this.grainPass) this.grainPass.uniforms.uTime.value = t;
       this.controls.update();
       this.composer.render();
     };
