@@ -2,21 +2,34 @@
    Quantum Lab — Immersion layer
    El 3D es el protagonista: lienzo a sangre completa, chrome flotante y sobrio.
    Se carga DESPUÉS de styles.css y sobrescribe el layout IDE por overlays.
-   Sin glow, sin pills rellenas, sin sombras: solo blur + tipografía system-ui.
+   Sin glow, sin pills rellenas, sin sombras: solo blur + tipografía Space Grotesk.
+   Paleta con significado (púrpura=amplitud, ámbar=solución, teal=medición),
+   foco visible y prefers-reduced-motion. Revisado con las skills de diseño.
    ========================================================================== */
 
 :root {
-  /* Tipografía sobria (system-ui); el monospace queda solo para datos. */
-  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  /* Acento morado del contrato. */
-  --iris: #7c3aed;
-  --iris-soft: rgba(124, 58, 237, 0.16);
-  /* Contraste desaturado. */
-  --fg: rgba(255, 255, 255, 0.9);
-  --fg-2: rgba(255, 255, 255, 0.68);
-  --fg-3: rgba(255, 255, 255, 0.45);
-  --fg-mut: rgba(255, 255, 255, 0.32);
-  --hair: rgba(255, 255, 255, 0.07);
+  /* Tipografía deliberada: Space Grotesk (grotesca geométrica de precisión, ya
+     empaquetada) para UI/títulos; JetBrains Mono SOLO para datos. */
+  --font: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --display: 'Space Grotesk', system-ui, sans-serif;
+
+  /* Fondo espacio-profundo tintado (no negro puro): da profundidad al vidrio. */
+  --void: #05060e;
+
+  /* Sistema cromático con SIGNIFICADO, anclado al 3D (que no se toca):
+       púrpura = amplitud / activo   ·   ámbar = solución / objetivo
+       teal    = medición / observar (pistas "mira")                     */
+  --iris: #8052ff; /* coincide con las barras del motor */
+  --iris-soft: rgba(128, 82, 255, 0.16);
+  --teal: #2ee6b0;
+  --saffron: #ffb829;
+
+  /* Texto con leve tinte frío (instrumento científico) y contraste AA. */
+  --fg: rgba(233, 233, 255, 0.94);
+  --fg-2: rgba(226, 226, 250, 0.74);
+  --fg-3: rgba(220, 220, 245, 0.58); /* subido desde .45 → contraste AA */
+  --fg-mut: rgba(216, 216, 240, 0.42);
+  --hair: rgba(255, 255, 255, 0.08);
 }
 
 body {
@@ -140,8 +153,8 @@ body {
 }
 #app .nav-col:hover {
   width: 220px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
+  background: rgba(10, 11, 26, 0.62);
+  backdrop-filter: blur(14px) saturate(1.1);
 }
 /* La tarjeta pierde fondo/relleno: el panel es el que aporta el blur. */
 #app .nav-col .card {
@@ -261,8 +274,8 @@ body {
   z-index: 30;
   padding: 52px 16px 96px;
   overflow-y: auto;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(12px);
+  background: rgba(10, 11, 26, 0.62);
+  backdrop-filter: blur(14px) saturate(1.1);
   border-left: 1px solid rgba(255, 255, 255, 0.06);
   transition: opacity 260ms ease;
 }
@@ -462,17 +475,31 @@ body {
    Subtítulo / caption — se lee como pie, no como tarjeta.
    --------------------------------------------------------------------------- */
 #app .caption {
-  background: transparent;
+  /* Lower-third a la izquierda, sobre el fondo oscuro (el centro lo ocupa el
+     resplandor). Velo suave difuminado (no una tarjeta) para legibilidad. */
+  left: 60px;
+  right: auto;
+  transform: none;
+  bottom: 76px;
+  max-width: 460px;
+  width: auto;
+  text-align: left;
+  background: linear-gradient(
+    90deg,
+    rgba(4, 5, 12, 0.74) 0%,
+    rgba(4, 5, 12, 0.5) 60%,
+    rgba(4, 5, 12, 0) 100%
+  );
   backdrop-filter: none;
   box-shadow: none;
   border-radius: 0;
   border-left: 2px solid var(--iris);
-  max-width: 480px;
-  width: auto;
-  padding: 4px 0 4px 14px;
-  text-align: left;
-  bottom: 104px;
-  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+  padding: 8px 40px 8px 14px;
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.9);
+}
+/* En reposo, esconde la pista de arrastre para no chocar con el subtítulo. */
+#app .caption:not([hidden]) ~ .hint {
+  opacity: 0;
 }
 #app .cap-kicker {
   color: #b79cff;
@@ -548,8 +575,8 @@ body {
   bottom: 0;
   height: 0;
   z-index: 45;
-  background: rgba(0, 0, 0, 0.82);
-  backdrop-filter: blur(14px);
+  background: rgba(8, 9, 20, 0.86);
+  backdrop-filter: blur(16px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 #app .shell.console-open .console-drawer {
@@ -567,8 +594,8 @@ body {
   box-shadow: none;
 }
 #app .popover {
-  background: rgba(10, 10, 14, 0.92);
-  backdrop-filter: blur(14px);
+  background: rgba(10, 11, 24, 0.94);
+  backdrop-filter: blur(16px);
 }
 
 /* ---------------------------------------------------------------------------
@@ -605,7 +632,45 @@ body.idle #app .caption {
    Deja hueco arriba para que no choque con el título/toggle flotantes.
    --------------------------------------------------------------------------- */
 #app .view-circuit {
-  background: rgba(0, 0, 0, 0.55);
+  background: rgba(5, 6, 14, 0.6);
   backdrop-filter: blur(6px);
   padding-top: 84px;
+}
+
+/* ---------------------------------------------------------------------------
+   Accesibilidad — foco visible por teclado y respeto a reduce-motion.
+   (Riesgo señalado por la revisión de diseño: HUD/FUI requiere ambos.)
+   --------------------------------------------------------------------------- */
+#app a:focus-visible,
+#app button:focus-visible,
+#app select:focus-visible,
+#app input:focus-visible,
+#app .nav .item:focus-visible,
+#app .seg:focus-visible,
+#app .pb-btn:focus-visible,
+#app .iconbtn:focus-visible,
+#app .ghost-btn:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+/* Los rangos (sliders) muestran foco en el propio control. */
+#app input[type='range']:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app *,
+  #app *::before,
+  #app *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+  /* El idle fade sigue atenuando, pero sin animación (estado final directo). */
+  #app .caption.in {
+    animation: none !important;
+  }
 }
