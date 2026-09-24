@@ -1,0 +1,611 @@
+/* ============================================================================
+   Quantum Lab — Immersion layer
+   El 3D es el protagonista: lienzo a sangre completa, chrome flotante y sobrio.
+   Se carga DESPUÉS de styles.css y sobrescribe el layout IDE por overlays.
+   Sin glow, sin pills rellenas, sin sombras: solo blur + tipografía system-ui.
+   ========================================================================== */
+
+:root {
+  /* Tipografía sobria (system-ui); el monospace queda solo para datos. */
+  --font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  /* Acento morado del contrato. */
+  --iris: #7c3aed;
+  --iris-soft: rgba(124, 58, 237, 0.16);
+  /* Contraste desaturado. */
+  --fg: rgba(255, 255, 255, 0.9);
+  --fg-2: rgba(255, 255, 255, 0.68);
+  --fg-3: rgba(255, 255, 255, 0.45);
+  --fg-mut: rgba(255, 255, 255, 0.32);
+  --hair: rgba(255, 255, 255, 0.07);
+}
+
+body {
+  letter-spacing: 0;
+}
+
+/* ---------------------------------------------------------------------------
+   Estructura: lienzo a sangre completa detrás; el resto flota encima.
+   --------------------------------------------------------------------------- */
+#app {
+  display: block;
+  height: 100vh;
+  overflow: hidden;
+}
+#app .shell {
+  display: block;
+  height: 100vh;
+}
+
+/* Lienzo 3D — full-bleed, nunca recortado ni atenuado, siempre al fondo. */
+#app .canvas-col {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  display: block;
+}
+#app .canvas-area {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+#app #viewport {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ---------------------------------------------------------------------------
+   Barra superior (top bar) — gradiente, sin caja ni borde.
+   --------------------------------------------------------------------------- */
+#app .appbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  z-index: 40;
+  padding: 0 16px;
+  gap: 14px;
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.5), transparent);
+}
+#app .appbar .brand .logo {
+  width: 22px;
+  height: 22px;
+}
+#app .appbar .brand .name {
+  font-size: 13px;
+  letter-spacing: 0.14em;
+  font-weight: 600;
+  color: var(--fg);
+}
+#app .appbar .brand .tag {
+  display: none;
+}
+/* Botones de icono: fantasma, sin círculo de fondo. */
+#app .appbar .iconbtn {
+  background: transparent;
+  width: 30px;
+  height: 30px;
+  color: var(--fg-3);
+}
+#app .appbar .iconbtn:hover {
+  background: transparent;
+  color: var(--fg);
+}
+#app .appbar .iconbtn.active {
+  background: transparent;
+  color: var(--iris);
+}
+/* "motor online": solo punto + etiqueta, sin pill. */
+#app .appbar .chip {
+  background: transparent;
+  padding: 0;
+  gap: 7px;
+  font-family: var(--font);
+  font-weight: 300;
+  font-size: 11.5px;
+  color: var(--fg-3);
+}
+#app .appbar #backendChip {
+  display: none;
+}
+#app .appbar .led {
+  width: 8px;
+  height: 8px;
+}
+#app .appbar .led.on {
+  box-shadow: none;
+  animation: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Sidebar izquierda (lista de algoritmos) — colapsada por defecto.
+   --------------------------------------------------------------------------- */
+#app .nav-col {
+  position: fixed;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 48px;
+  z-index: 30;
+  padding: 52px 0 20px;
+  overflow: hidden;
+  gap: 0;
+  background: transparent;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  transition:
+    width 250ms ease,
+    background 250ms ease,
+    opacity 120ms ease;
+}
+#app .nav-col:hover {
+  width: 220px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+}
+/* La tarjeta pierde fondo/relleno: el panel es el que aporta el blur. */
+#app .nav-col .card {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+}
+#app .nav-col .card-h {
+  display: none;
+}
+#app .nav-col .card-b {
+  padding: 0;
+}
+#app .nav .nav-group {
+  gap: 0;
+}
+/* Etiquetas de sección → reglas horizontales. */
+#app .nav .nav-glabel {
+  height: 0;
+  margin: 10px 12px;
+  padding: 0;
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 0;
+  color: transparent;
+  overflow: hidden;
+}
+#app .nav .nav-group:first-child .nav-glabel {
+  margin-top: 0;
+  border-top: 0;
+}
+/* Ítems: sin glow, sin pill, sin sombra. Acento morado solo en el activo. */
+#app .nav .item {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 8px;
+  padding: 10px 12px;
+  gap: 14px;
+  transition:
+    background 0.16s,
+    color 0.16s;
+}
+#app .nav .item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: none;
+  color: var(--fg-2);
+}
+#app .nav .item.active {
+  background: transparent;
+  box-shadow: none;
+  color: var(--fg);
+}
+#app .nav .item .ic-wrap {
+  background: transparent;
+  box-shadow: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 0;
+}
+#app .nav .item.active .ic-wrap {
+  background: transparent;
+  box-shadow: none;
+}
+#app .nav .item .ic {
+  color: var(--fg-3);
+}
+#app .nav .item:hover .ic {
+  color: var(--fg);
+}
+#app .nav .item.active .ic {
+  color: var(--iris);
+}
+/* Barra de acento morada solo en el activo. */
+#app .nav .item .edge {
+  display: none;
+}
+#app .nav .item.active .edge {
+  display: block;
+  background: var(--iris);
+  transform: translateY(-50%) scaleY(1);
+  width: 2px;
+}
+#app .nav .item .t {
+  font-family: var(--font);
+  font-weight: 400;
+  color: var(--fg-2);
+}
+#app .nav .item.active .t {
+  font-weight: 600;
+  color: var(--fg);
+}
+#app .nav .item .d {
+  font-family: var(--font);
+  font-weight: 300;
+  color: var(--fg-3);
+}
+#app .nav .item .go {
+  display: none;
+}
+/* Colapsada: solo iconos; el texto aparece al expandir. */
+#app .nav-col:not(:hover) .txt {
+  opacity: 0;
+}
+#app .nav-col .txt {
+  transition: opacity 180ms ease;
+}
+
+/* ---------------------------------------------------------------------------
+   Panel derecho (Guía) — blur, autohide por inactividad.
+   --------------------------------------------------------------------------- */
+#app .insp-col {
+  position: fixed;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 300px;
+  z-index: 30;
+  padding: 52px 16px 96px;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+  border-left: 1px solid rgba(255, 255, 255, 0.06);
+  transition: opacity 260ms ease;
+}
+#app .insp-col.autohide {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+#app .insp-col .card {
+  background: transparent;
+  box-shadow: none;
+}
+#app .insp-col .card-h {
+  color: var(--fg-mut);
+}
+/* Métrica/tabla: superficies muy sutiles sobre el blur. */
+#app .metric {
+  background: rgba(255, 255, 255, 0.04);
+  box-shadow: none;
+}
+#app .chartbox {
+  height: 150px;
+}
+
+/* Tarjeta Guía: cabecera "GUÍA 2/3" → solo el conteo, inline y pequeño. */
+#app #guideCard .card-h > span:first-child {
+  font-size: 9px;
+  color: var(--fg-mut);
+  opacity: 0.7;
+}
+#app #guideCard .guide-progress {
+  font-family: var(--mono);
+  color: var(--fg-3);
+}
+#app .guide-hook {
+  font-weight: 600;
+  color: var(--fg);
+}
+#app .guide-intro {
+  color: var(--fg-3);
+  font-weight: 300;
+}
+/* Pasos: sin fondo, sin ring; separador fino; número morado si activo. */
+#app .guide-step {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+  padding: 11px 2px;
+  opacity: 0.5;
+}
+#app .guide-step + .guide-step {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+#app .guide-step.on {
+  background: transparent;
+  box-shadow: none;
+  opacity: 1;
+}
+#app .guide-step.done {
+  opacity: 0.7;
+}
+#app .guide-step .gs-n {
+  background: transparent;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  color: var(--fg-mut);
+  font-family: var(--mono);
+}
+#app .guide-step.on .gs-n {
+  background: transparent;
+  color: var(--iris);
+  font-weight: 600;
+}
+#app .guide-step.done .gs-n {
+  background: transparent;
+  color: var(--fg-3);
+}
+#app .guide-step .gs-t {
+  font-weight: 500;
+}
+#app .guide-step .gs-what {
+  color: var(--fg-3);
+}
+#app .guide-step .gs-watch {
+  font-family: var(--font);
+  color: var(--teal);
+}
+
+/* Parámetros / controles dentro del panel. */
+#app .field label {
+  font-weight: 300;
+  color: var(--fg-3);
+}
+#app select,
+#app .hintbox {
+  font-family: var(--font);
+}
+#app button.btn {
+  background: rgba(255, 255, 255, 0.06);
+  font-family: var(--font);
+}
+#app button.btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+#app button.btn.primary {
+  background: var(--iris);
+}
+
+/* ---------------------------------------------------------------------------
+   Encabezado del lienzo (título + toggle) — flota, sin caja.
+   --------------------------------------------------------------------------- */
+#app .canvas-header {
+  position: fixed;
+  top: 40px;
+  left: 60px;
+  right: 320px;
+  z-index: 6;
+  padding: 16px 4px;
+  background: transparent;
+  pointer-events: none;
+}
+#app .canvas-header .segmented,
+#app .canvas-header .seg,
+#app .canvas-header .pill {
+  pointer-events: auto;
+}
+#app .chead-title {
+  font-family: var(--font);
+  font-weight: 600;
+  font-size: 22px;
+  letter-spacing: 0;
+  color: var(--fg);
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.7);
+}
+#app .chead-sub {
+  font-family: var(--font);
+  font-weight: 300;
+  color: var(--fg-3);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+/* Toggle Vista 3D / Circuito → enlaces de texto, subrayado en activo. */
+#app .segmented {
+  background: transparent;
+  padding: 0;
+  gap: 18px;
+}
+#app .seg {
+  background: transparent;
+  border-radius: 0;
+  padding: 4px 1px;
+  font-weight: 400;
+  color: var(--fg-3);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+#app .seg:hover {
+  color: var(--fg-2);
+}
+#app .seg.active {
+  background: transparent;
+  color: var(--fg);
+  border-bottom: 2px solid var(--iris);
+}
+/* Tags de paso (prep/oráculo/…) → punto + texto; activo subrayado. */
+#app .canvas-header .step-pills {
+  gap: 0;
+}
+#app .canvas-header .pill {
+  background: transparent;
+  border-radius: 0;
+  padding: 2px 0;
+  margin-right: 16px;
+  color: var(--fg-3);
+  font-family: var(--font);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.7);
+}
+#app .canvas-header .pill::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+#app .canvas-header .pill.on {
+  color: var(--fg);
+  border-bottom: 1px solid var(--iris);
+}
+#app .canvas-header .pill.on::before {
+  background: var(--iris);
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Subtítulo / caption — se lee como pie, no como tarjeta.
+   --------------------------------------------------------------------------- */
+#app .caption {
+  background: transparent;
+  backdrop-filter: none;
+  box-shadow: none;
+  border-radius: 0;
+  border-left: 2px solid var(--iris);
+  max-width: 480px;
+  width: auto;
+  padding: 4px 0 4px 14px;
+  text-align: left;
+  bottom: 104px;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.85);
+}
+#app .cap-kicker {
+  color: #b79cff;
+}
+#app .cap-body {
+  color: var(--fg);
+  font-size: 15px;
+}
+#app .cap-watch {
+  font-family: var(--font);
+  color: var(--teal);
+}
+
+/* Pistas del lienzo (arrastra / leyenda) — muy tenues. */
+#app .canvas-area .hint,
+#app .canvas-area .legend {
+  color: var(--fg-mut);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------------------------------------------------------------------------
+   Pie de reproducción — gradiente, controles centrados, sin caja.
+   --------------------------------------------------------------------------- */
+#app .canvas-footer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 15;
+  justify-content: center;
+  gap: 0;
+  padding: 30px 18px 18px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
+}
+#app .canvas-footer .statusbar {
+  display: none;
+}
+#app .playback {
+  background: transparent;
+  padding: 0;
+  gap: 14px;
+}
+#app .pb-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+#app .pb-speed {
+  background: rgba(255, 255, 255, 0.08);
+}
+#app .pb-count {
+  color: var(--fg-3);
+}
+/* Botón de consola: fantasma, anclado a la derecha del pie. */
+#app .canvas-footer .ghost-btn {
+  position: absolute;
+  right: 18px;
+  bottom: 22px;
+  background: transparent;
+  color: var(--fg-mut);
+}
+#app .canvas-footer .ghost-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--fg);
+}
+#app .canvas-footer .ghost-btn.active {
+  color: var(--iris);
+}
+
+/* Consola (cajón) — fija abajo, encima del pie, sobre el lienzo. */
+#app .console-drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0;
+  z-index: 45;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+#app .shell.console-open .console-drawer {
+  height: 210px;
+}
+
+/* ---------------------------------------------------------------------------
+   Quitar profundidad: nada de box-shadow en paneles/tarjetas.
+   --------------------------------------------------------------------------- */
+#app .card,
+#app .popover,
+#app .metric,
+#app .console-drawer,
+#app .caption {
+  box-shadow: none;
+}
+#app .popover {
+  background: rgba(10, 10, 14, 0.92);
+  backdrop-filter: blur(14px);
+}
+
+/* ---------------------------------------------------------------------------
+   Desvanecimiento por inactividad — el chrome se atenúa; el 3D nunca.
+   --------------------------------------------------------------------------- */
+#app .appbar,
+#app .nav-col,
+#app .insp-col,
+#app .canvas-header,
+#app .canvas-footer,
+#app .console-drawer {
+  transition: opacity 140ms ease;
+}
+body.idle {
+  cursor: none;
+}
+body.idle #app .appbar,
+body.idle #app .nav-col,
+body.idle #app .insp-col,
+body.idle #app .canvas-header,
+body.idle #app .canvas-footer,
+body.idle #app .console-drawer {
+  opacity: 0.15;
+  transition: opacity 1100ms ease;
+  pointer-events: none;
+}
+/* El subtítulo pedagógico permanece legible aunque el resto se atenúe. */
+body.idle #app .caption {
+  opacity: 1;
+}
+
+/* ---------------------------------------------------------------------------
+   Vista de circuito — hereda full-bleed, fondo translúcido sobre el 3D.
+   Deja hueco arriba para que no choque con el título/toggle flotantes.
+   --------------------------------------------------------------------------- */
+#app .view-circuit {
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  padding-top: 84px;
+}

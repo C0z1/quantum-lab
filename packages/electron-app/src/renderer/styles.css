@@ -925,6 +925,155 @@ button.btn .ic {
   display: none;
 }
 
+/* ---------- Subtítulo / teleprompter pedagógico sobre el lienzo ---------- */
+.caption {
+  position: absolute;
+  left: 50%;
+  bottom: 52px;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(700px, 86%);
+  text-align: center;
+  background: rgba(9, 9, 13, 0.74);
+  backdrop-filter: blur(12px);
+  border-radius: 16px;
+  padding: 13px 20px;
+  pointer-events: none;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+}
+.caption[hidden] {
+  display: none;
+}
+.caption.in {
+  animation: capIn 0.36s ease;
+}
+@keyframes capIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 8px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+.cap-kicker {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #b39cff;
+}
+.cap-kicker:empty {
+  display: none;
+}
+.cap-body {
+  font-size: 14.5px;
+  line-height: 1.5;
+  color: var(--fg);
+  margin-top: 5px;
+}
+.cap-watch {
+  font-family: var(--mono);
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--teal);
+  margin-top: 7px;
+}
+.cap-watch[hidden] {
+  display: none;
+}
+
+/* ---------- Tarjeta Guía (inspector) ---------- */
+.guide-progress {
+  font-family: var(--mono);
+  color: var(--iris);
+  letter-spacing: 0.02em;
+}
+.guide-hook {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--fg);
+}
+.guide-intro {
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--fg-3);
+  margin-top: 8px;
+}
+.guide-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.guide-step {
+  padding: 11px 13px;
+  border-radius: 13px;
+  background: var(--surface-2);
+  opacity: 0.5;
+  transition:
+    opacity 0.22s,
+    background 0.22s,
+    box-shadow 0.22s;
+}
+.guide-step.done {
+  opacity: 0.8;
+}
+.guide-step.on {
+  opacity: 1;
+  background:
+    radial-gradient(120% 100% at 0% 0%, rgba(128, 82, 255, 0.2), transparent 62%), var(--surface-2);
+  box-shadow: inset 0 0 0 1px rgba(128, 82, 255, 0.38);
+}
+.guide-step .gs-h {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.guide-step .gs-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--surface-3);
+  color: var(--fg-3);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.guide-step.on .gs-n {
+  background: var(--iris);
+  color: #fff;
+}
+.guide-step.done .gs-n {
+  background: rgba(46, 230, 176, 0.18);
+  color: var(--teal);
+}
+.guide-step .gs-what {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--fg-3);
+  margin-top: 5px;
+}
+.guide-step .gs-watch {
+  font-family: var(--mono);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--teal);
+  margin-top: 6px;
+  opacity: 0.55;
+}
+.guide-step.on .gs-watch {
+  opacity: 1;
+}
+
 /* ---------- Status bar (inline en el pie del lienzo) ---------- */
 .statusbar {
   display: flex;

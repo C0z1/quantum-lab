@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Quantum Lab</title>
     <link rel="stylesheet" href="styles.css" />
+    <!-- Capa de inmersión: sobrescribe el layout por overlays sobre el lienzo. -->
+    <link rel="stylesheet" href="immersion.css" />
   </head>
   <body>
     <div id="app">
@@ -89,6 +91,11 @@
               <div class="circuit-note" id="circuitNote"></div>
               <div class="circuit-scroll"><div class="circuit-body" id="circuit"></div></div>
             </div>
+            <div class="caption" id="caption" hidden>
+              <div class="cap-kicker" id="capKicker"></div>
+              <div class="cap-body" id="capBody"></div>
+              <div class="cap-watch" id="capWatch"></div>
+            </div>
             <div class="hint" id="viewHint">Arrastra para rotar · rueda para zoom</div>
             <div class="legend" id="legend"></div>
           </div>
@@ -141,5 +148,7 @@
     <!-- Bundle autocontenido (three + addons + módulos del renderer) generado
          por esbuild (npm run bundle). No depende de node_modules en runtime. -->
     <script type="module" src="scene.bundle.js"></script>
+    <!-- Comportamiento de inmersión (idle fade + autohide). No usa módulos. -->
+    <script src="immersion.js"></script>
   </body>
 </html>

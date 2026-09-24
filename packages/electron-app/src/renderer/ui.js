@@ -49,6 +49,149 @@ const ALGOS = {
   qft: { name: 'QFT', desc: 'Transformada de Fourier', hudSub: 'peine → picos espaciados' },
 };
 
+// Guion pedagógico en lenguaje llano: para cada algoritmo, un "gancho" que
+// impacta a alguien sin base técnica, una intro y los pasos con qué pasa y
+// qué mirar en la animación. scene.js decide qué paso está activo.
+const NARRATION = {
+  grover: {
+    hook: 'Encuentra 1 opción entre muchas en unos pocos intentos — donde un buscador normal tendría que probarlas casi todas.',
+    intro:
+      'Es como buscar un nombre en una guía desordenada. En vez de mirar página por página, Grover pone TODAS las opciones a la vez y, con unos “empujones”, hace que la correcta destaque sola.',
+    steps: [
+      {
+        t: 'Superposición',
+        what: 'Todas las opciones existen al mismo tiempo, con la misma probabilidad. Aún no se sabe cuál es la buena.',
+        watch: 'Todas las barras están igual de altas: nadie destaca todavía.',
+      },
+      {
+        t: 'Marcar y amplificar',
+        what: 'El oráculo señala en secreto la opción correcta y el difusor la agranda un poco más que el resto. Se repite para acentuar la diferencia.',
+        watch: 'Una barra sube mientras las demás bajan: la respuesta va emergiendo.',
+      },
+      {
+        t: 'Medida',
+        what: 'Al medir, casi siempre sale la opción correcta. Eso es la “amplificación de amplitud”.',
+        watch: 'La barra dorada domina la escena: esa es la solución.',
+      },
+    ],
+  },
+  teleport: {
+    hook: 'Envía el estado exacto de una partícula a otra distante — sin mover materia y destruyendo el original.',
+    intro:
+      'Teletransportar aquí no es mover cosas, sino copiar la “orientación” exacta de una partícula a otra lejana usando entrelazamiento y dos bits de información normal.',
+    steps: [
+      {
+        t: 'Preparar |ψ⟩',
+        what: 'Se prepara el estado misterioso que queremos enviar: una flecha con una dirección concreta.',
+        watch: 'Fíjate en hacia dónde apunta la PRIMERA esfera: eso es lo que viajará.',
+      },
+      {
+        t: 'Par entrelazado',
+        what: 'Creamos dos partículas entrelazadas: actúan como una sola aunque estén separadas.',
+        watch: 'Las esferas 2 y 3 quedan ligadas entre sí.',
+      },
+      {
+        t: 'Medida',
+        what: 'Medimos y eso “dispara” la teletransportación: el estado original se colapsa y desaparece.',
+        watch: 'La flecha original se pierde en la primera esfera.',
+      },
+      {
+        t: 'Corrección',
+        what: 'Con dos bits clásicos, el destino aplica un ajuste y reconstruye |ψ⟩ idéntico. Fidelidad 1.000.',
+        watch: 'La ÚLTIMA esfera termina apuntando igual que apuntaba la primera. ✨',
+      },
+    ],
+  },
+  shor: {
+    hook: 'Rompe el candado matemático de casi toda la seguridad de internet: factoriza números enormes rápido.',
+    intro:
+      'La seguridad online confía en que factorizar números gigantes es lentísimo. Shor busca un “ritmo” oculto (un periodo) con ondas cuánticas y de ahí saca los factores.',
+    steps: [
+      {
+        t: 'Superponer',
+        what: 'Ponemos el registro en superposición para probar muchísimos exponentes a la vez.',
+        watch: 'Registro llano: todas las posibilidades activas por igual.',
+      },
+      {
+        t: 'Exponenciación modular',
+        what: 'Calculamos a^x mod N. Esto esconde un patrón que se repite con un periodo r.',
+        watch: 'Empieza a aparecer una estructura que se repite.',
+      },
+      {
+        t: 'Revelar el periodo',
+        what: 'La transformada de Fourier convierte ese ritmo oculto en picos nítidos; de r salen los factores.',
+        watch: 'Picos equiespaciados: su separación da el periodo r → los factores. ✨',
+      },
+    ],
+  },
+  dj: {
+    hook: '¿La moneda es normal o está trucada? Lo resuelve con UNA sola pregunta, no muchas tiradas.',
+    intro:
+      'Una función puede ser “constante” (siempre igual) o “balanceada” (mitad y mitad). Lo clásico necesita muchas pruebas; Deutsch-Jozsa lo decide con una sola consulta.',
+    steps: [
+      {
+        t: 'Preparar',
+        what: 'Todas las entradas se ponen en superposición, con un truco de fase que las hace sensibles a la función.',
+        watch: 'Todo entra en superposición a la vez.',
+      },
+      {
+        t: 'Una sola consulta',
+        what: 'La función responde una única vez, pero afecta a todas las entradas por “phase kickback”.',
+        watch: 'La firma de la función queda impresa en las fases.',
+      },
+      {
+        t: 'Leer el veredicto',
+        what: 'Al deshacer la superposición, el resultado dice constante o balanceada de un golpe.',
+        watch: 'Todo en |0…0⟩ = constante; cualquier otra cosa = balanceada. ✨',
+      },
+    ],
+  },
+  bv: {
+    hook: 'Adivina una contraseña binaria entera con UNA pregunta, no bit por bit.',
+    intro:
+      'Hay una cadena secreta de bits. Un método normal la saca preguntando bit a bit (n preguntas). Bernstein-Vazirani la extrae completa en una sola consulta.',
+    steps: [
+      {
+        t: 'Preparar',
+        what: 'Superponemos todas las entradas posibles a la vez.',
+        watch: 'Todas las entradas activas por igual.',
+      },
+      {
+        t: 'Una sola consulta',
+        what: 'El oráculo mezcla la cadena secreta “a” dentro de las fases del estado.',
+        watch: 'La cadena secreta queda codificada, invisible, en las fases.',
+      },
+      {
+        t: 'Leer la cadena',
+        what: 'Al medir, sale directamente la cadena secreta completa.',
+        watch: 'El pico marca exactamente la cadena oculta. ✨',
+      },
+    ],
+  },
+  qft: {
+    hook: 'La “lente” que convierte un ritmo repetido en frecuencias visibles: el corazón de Shor.',
+    intro:
+      'La Transformada de Fourier Cuántica reorganiza la información: toma un patrón que se repite y lo muestra como frecuencias limpias.',
+    steps: [
+      {
+        t: 'Patrón regular',
+        what: 'Partimos de un “peine”: un patrón uniforme que se repite cada 2^m posiciones.',
+        watch: 'Dientes uniformes y bien espaciados.',
+      },
+      {
+        t: 'Transformar',
+        what: 'Aplicamos la QFT: reorganiza toda la información del patrón en frecuencias.',
+        watch: 'El patrón se reordena por completo.',
+      },
+      {
+        t: 'Frecuencias',
+        what: 'El resultado son pocos picos limpios cuya separación revela la periodicidad.',
+        watch: 'Pocos picos equiespaciados = la frecuencia oculta. ✨',
+      },
+    ],
+  },
+};
+
 export class UIController {
   constructor(cb) {
     this.onRun = cb.onRun;
@@ -85,6 +228,7 @@ export class UIController {
     this._buildSettings();
     this.chartCanvas = this.$('chart');
     this.setHud('grover');
+    this.setGuide('grover');
   }
 
   // ---------------- CONTROL SEGMENTADO (Vista 3D | Circuito) ----------------
@@ -462,6 +606,14 @@ export class UIController {
   // ---------------- INSPECTOR (rail derecho) ----------------
   _buildInspector() {
     this.$('railRight').innerHTML = `
+      <div class="card" id="guideCard">
+        <div class="card-h"><span>Guía</span><span class="guide-progress" id="guideProgress"></span></div>
+        <div class="card-b">
+          <div class="guide-hook" id="guideHook"></div>
+          <div class="guide-intro" id="guideIntro"></div>
+          <div class="guide-steps" id="guideSteps"></div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-h">Parámetros</div>
         <div class="card-b">
@@ -607,6 +759,79 @@ export class UIController {
     this.$('legend').innerHTML = (items || [])
       .map((i) => `<span><i style="background:${i.color}"></i>${i.label}</span>`)
       .join('');
+  }
+
+  // ---------------- GUÍA PEDAGÓGICA ----------------
+  // Carga el guion de un algoritmo en la tarjeta Guía y deja el subtítulo con
+  // el "gancho" (antes de ejecutar). scene.js llama luego setGuidePhase().
+  setGuide(algo) {
+    const n = NARRATION[algo];
+    if (!n) return;
+    this._guide = n;
+    this._guidePhase = -1;
+    this.$('guideHook').textContent = n.hook;
+    this.$('guideIntro').textContent = n.intro;
+    this.$('guideSteps').innerHTML = n.steps
+      .map(
+        (s, i) => `
+        <div class="guide-step" data-i="${i}">
+          <div class="gs-h"><span class="gs-n">${i + 1}</span><span class="gs-t">${s.t}</span></div>
+          <div class="gs-what">${s.what}</div>
+          <div class="gs-watch">👁 ${s.watch}</div>
+        </div>`
+      )
+      .join('');
+    this.$('guideProgress').textContent = `0 / ${n.steps.length}`;
+    // Subtítulo inicial: el gancho, para enganchar antes de correr.
+    this._caption({ kicker: 'Antes de empezar', body: n.hook, watch: '' });
+  }
+
+  // Resalta el paso activo en la tarjeta y actualiza el subtítulo del lienzo.
+  setGuidePhase(i) {
+    if (!this._guide) return;
+    const steps = this._guide.steps;
+    if (i == null || i < 0) return;
+    i = Math.min(i, steps.length - 1);
+    if (i === this._guidePhase) return;
+    this._guidePhase = i;
+    const host = this.$('guideSteps');
+    if (host)
+      host.querySelectorAll('.guide-step').forEach((el) => {
+        const idx = +el.dataset.i;
+        el.classList.toggle('on', idx === i);
+        el.classList.toggle('done', idx < i);
+      });
+    this.$('guideProgress').textContent = `${i + 1} / ${steps.length}`;
+    const s = steps[i];
+    this._caption({
+      kicker: `Paso ${i + 1}/${steps.length} · ${s.t}`,
+      body: s.what,
+      watch: s.watch,
+    });
+  }
+
+  _caption({ kicker, body, watch }) {
+    const cap = this.$('caption');
+    if (!cap) return;
+    this.$('capKicker').textContent = kicker || '';
+    this.$('capBody').textContent = body || '';
+    const w = this.$('capWatch');
+    if (watch) {
+      w.textContent = '👁 ' + watch;
+      w.hidden = false;
+    } else {
+      w.hidden = true;
+    }
+    cap.hidden = false;
+    // Reinicia la animación de entrada para que cada cambio "aparezca".
+    cap.classList.remove('in');
+    void cap.offsetWidth;
+    cap.classList.add('in');
+  }
+
+  showCaption(show) {
+    const cap = this.$('caption');
+    if (cap) cap.hidden = !show;
   }
 
   log(msg, type = '') {

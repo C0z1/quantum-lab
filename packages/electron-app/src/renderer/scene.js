@@ -224,6 +224,9 @@ function configureFor(algo, params) {
     PILLS[algo].map((p) => ({ label: p, on: false }))
   );
   ui.setCircuit(algo, params);
+  // Carga el guion pedagógico y muestra el "gancho" antes de ejecutar.
+  ui.setGuide(algo);
+  ui.showCaption(true);
 }
 
 function resetRun() {
@@ -336,6 +339,17 @@ function showFrame(idx, forward) {
   if (!frame) return;
   const nbits = Math.round(Math.log2(frame.stateSize));
   viz.updateFromFrame(frame);
+
+  // Narración sincronizada: fase actual del guion según el algoritmo.
+  let phase;
+  if (state.algo === 'grover') {
+    phase = frame.iteration === 0 ? 0 : idx === state.buffer.length - 1 && state.runFinal ? 2 : 1;
+  } else if (state.algo === 'teleport') {
+    phase = Math.min(3, frame.iteration);
+  } else {
+    phase = frame.isFinal ? 2 : frame.iteration === 0 ? 0 : 1;
+  }
+  ui.setGuidePhase(phase);
 
   if (state.algo === 'grover') {
     const series = state.buffer
