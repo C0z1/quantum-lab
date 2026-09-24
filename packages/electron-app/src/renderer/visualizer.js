@@ -132,11 +132,15 @@ export class QuantumVisualizer {
     this.nBloch = 0;
     this._burstDone = false;
 
+    this._rippleCenters = [];
+    this._intro = null;
+
     this._addLights();
     this._addNebula();
     this._addStarfield();
     this._addDust();
     this._addFloor();
+    this._addFloorRipple();
     this._onResize = this._onResize.bind(this);
     window.addEventListener('resize', this._onResize);
     this._startRenderLoop();
@@ -305,10 +309,88 @@ export class QuantumVisualizer {
     this.scene.add(this.grid);
   }
 
+  // Ondas de interferencia en el suelo: anillos concéntricos que emanan de las
+  // columnas activas (objetivo/picos) — refuerzan la metáfora cuántica y se
+  // reflejan en el espejo. Un solo plano con shader; barato.
+  _addFloorRipple() {
+    const centers = [];
+    for (let i = 0; i < 6; i++) centers.push(new THREE.Vector2(9999, 9999));
+    this.rippleMat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+      uniforms: {
+        uTime: { value: 0 },
+        uCenters: { value: centers },
+        uCount: { value: 0 },
+        uColor: { value: new THREE.Color(this.C.iris) },
+        uColor2: { value: new THREE.Color(this.C.teal) },
+      },
+      vertexShader: `varying vec2 vP; void main(){ vP = position.xy; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+      fragmentShader: `
+        varying vec2 vP;
+        uniform float uTime; uniform vec2 uCenters[6]; uniform int uCount;
+        uniform vec3 uColor, uColor2;
+        void main(){
+          float a = 0.0;
+          for(int i=0;i<6;i++){
+            if(i>=uCount) break;
+            float d = distance(vP, uCenters[i]);
+            float w = sin(d*0.85 - uTime*2.3) * 0.5 + 0.5;
+            w = pow(w, 3.0);
+            float fall = smoothstep(28.0, 0.0, d);
+            a += w * fall;
+          }
+          a = clamp(a, 0.0, 1.0) * 0.5;
+          vec3 col = mix(uColor, uColor2, 0.4);
+          gl_FragColor = vec4(col * a, a);
+        }`,
+    });
+    this.ripple = new THREE.Mesh(new THREE.PlaneGeometry(150, 150), this.rippleMat);
+    this.ripple.rotation.x = -Math.PI / 2;
+    this.ripple.position.y = 0.03;
+    this.scene.add(this.ripple);
+  }
+
+  // Cascarón de Fresnel reutilizable (halo en el borde) para las esferas.
+  _fresnelShell(R, color, strength) {
+    const mat = new THREE.ShaderMaterial({
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      uniforms: { uColor: { value: new THREE.Color(color) }, uStr: { value: strength } },
+      vertexShader: `varying vec3 vN; varying vec3 vV;
+        void main(){ vec4 mv = modelViewMatrix * vec4(position,1.0); vN = normalize(normalMatrix * normal); vV = normalize(-mv.xyz); gl_Position = projectionMatrix * mv; }`,
+      fragmentShader: `varying vec3 vN; varying vec3 vV; uniform vec3 uColor; uniform float uStr;
+        void main(){ float f = pow(1.0 - clamp(dot(vN, vV), 0.0, 1.0), 2.5); gl_FragColor = vec4(uColor, f * uStr); }`,
+    });
+    return new THREE.Mesh(new THREE.SphereGeometry(R, 32, 24), mat);
+  }
+
+  // Dolly cinematográfico: encuadra la escena al preparar cada algoritmo.
+  _playIntro(toPos, toTarget) {
+    const fromPos = toPos.clone().multiplyScalar(1.35);
+    fromPos.y = toPos.y + 6;
+    this._introAuto = this.controls.autoRotate;
+    this.controls.autoRotate = false;
+    this._intro = {
+      t: 0,
+      dur: 1.25,
+      fromPos,
+      toPos: toPos.clone(),
+      fromTarget: this.controls.target.clone(),
+      toTarget: toTarget.clone(),
+    };
+    this.camera.position.copy(fromPos);
+    this.controls.target.copy(toTarget);
+  }
+
   setMode(mode) {
     this.mode = mode;
     this.barsGroup.visible = mode === 'bars';
     this.blochGroup.visible = mode === 'bloch';
+    if (this.ripple) this.ripple.visible = mode === 'bars' && !this._lite;
   }
 
   // ---- Ajustes en vivo (panel de configuración) ----
@@ -326,6 +408,7 @@ export class QuantumVisualizer {
     if (this.mirror) this.mirror.visible = !on;
     if (this.dust) this.dust.visible = !on;
     if (this.grainPass) this.grainPass.enabled = !on;
+    if (this.ripple) this.ripple.visible = !on && this.mode === 'bars';
     if (this.bloom) this.bloom.strength = on ? Math.min(this._bloomBase, 0.6) : this._bloomBase;
   }
 
@@ -346,6 +429,7 @@ export class QuantumVisualizer {
     this.bars = [];
     this.targetProbs = new Array(stateSize).fill(0);
     this.stateSize = stateSize;
+    this._revealed = false;
 
     const spacing = stateSize > 32 ? Math.max(0.22, 62 / stateSize) : 1.25;
     const totalWidth = (stateSize - 1) * spacing;
@@ -353,13 +437,7 @@ export class QuantumVisualizer {
     const bw = spacing * (stateSize > 32 ? 0.85 : 0.62);
     for (let i = 0; i < stateSize; i++) {
       const geo = new THREE.BoxGeometry(bw, 1, 0.85);
-      const mat = new THREE.MeshStandardMaterial({
-        color: 0x07070d,
-        emissive: new THREE.Color(0x2a1e55),
-        emissiveIntensity: 1.1,
-        metalness: 0.72,
-        roughness: 0.16,
-      });
+      const mat = this._barMaterial();
       const bar = new THREE.Mesh(geo, mat);
       bar.position.set(-totalWidth / 2 + i * spacing, 0.5, 0);
       this.barsGroup.add(bar);
@@ -373,11 +451,55 @@ export class QuantumVisualizer {
         this.barsGroup.add(label);
       }
     }
+    // Envolvente de amplitud: curva luminosa que traza las probabilidades como
+    // la "función de onda" sobre las columnas. Elemento firma de la escena.
+    const wpos = new Float32Array(stateSize * 3);
+    const wcol = new Float32Array(stateSize * 3);
+    for (let i = 0; i < stateSize; i++) {
+      wpos[i * 3] = this.bars[i].position.x;
+      wpos[i * 3 + 1] = 0.05;
+      wpos[i * 3 + 2] = 0.55;
+    }
+    const wgeo = new THREE.BufferGeometry();
+    wgeo.setAttribute('position', new THREE.BufferAttribute(wpos, 3));
+    wgeo.setAttribute('color', new THREE.BufferAttribute(wcol, 3));
+    this.wave = new THREE.Line(
+      wgeo,
+      new THREE.LineBasicMaterial({
+        vertexColors: true,
+        transparent: true,
+        opacity: 0.92,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+      })
+    );
+    this.barsGroup.add(this.wave);
+
     this.totalWidth = totalWidth;
     const camZ = Math.min(64, Math.max(15, totalWidth * 0.9));
-    this.camera.position.set(0, 8, camZ);
-    this.controls.target.set(0, 3.6, 0);
-    this.controls.update();
+    this._playIntro(new THREE.Vector3(0, 8, camZ), new THREE.Vector3(0, 3.6, 0));
+  }
+
+  // Material de columna con borde de Fresnel: los cantos captan un halo frío,
+  // dando lectura de "cristal de energía". El programa se compila una sola vez
+  // (three cachea por código), aunque haya cientos de barras.
+  _barMaterial() {
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x07070d,
+      emissive: new THREE.Color(0x2a1e55),
+      emissiveIntensity: 1.1,
+      metalness: 0.72,
+      roughness: 0.16,
+    });
+    mat.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        '#include <emissivemap_fragment>',
+        `#include <emissivemap_fragment>
+         float qFres = pow(1.0 - clamp(dot(normalize(vNormal), normalize(vViewPosition)), 0.0, 1.0), 3.0);
+         totalEmissiveRadiance += vec3(0.30, 0.42, 0.85) * qFres * 1.15;`
+      );
+    };
+    return mat;
   }
 
   highlightTarget(index) {
@@ -391,10 +513,13 @@ export class QuantumVisualizer {
 
   _setBeams(indices, color) {
     this._clearBeams();
+    const centers = [];
     for (const i of indices) {
       if (i < 0 || i >= this.bars.length) continue;
       this.beams.push(this._makeBeam(this.bars[i].position.x, color));
+      if (centers.length < 6) centers.push(this.bars[i].position.x);
     }
+    this._rippleCenters = centers;
   }
 
   _makeBeam(x, color) {
@@ -466,6 +591,29 @@ export class QuantumVisualizer {
     this._spawnRing(originX, this.targetIndex >= 0 ? this.C.saffron : this.C.iris);
   }
 
+  // Onda expansiva de revelación: cuando la solución emerge, un choque en el
+  // suelo (dos anillos escalonados) marca el momento "¡ahí está!".
+  _spawnShockwave(x, color) {
+    if (this._particlesOn === false) return;
+    for (let k = 0; k < 2; k++) {
+      const mesh = new THREE.Mesh(
+        new THREE.RingGeometry(0.5, 0.72, 64),
+        new THREE.MeshBasicMaterial({
+          color,
+          transparent: true,
+          opacity: 0.9,
+          blending: THREE.AdditiveBlending,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+        })
+      );
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, 0.04, 0);
+      this.fxGroup.add(mesh);
+      this.rings.push({ mesh, age: -k * 0.18, life: 1.8, big: true });
+    }
+  }
+
   _tickBars(dt, t) {
     const nStates = this.stateSize || 1;
     for (let i = 0; i < this.bars.length; i++) {
@@ -487,6 +635,35 @@ export class QuantumVisualizer {
         bar.material.emissiveIntensity = (0.45 + 1.7 * rel) * pulse;
       }
     }
+    // Envolvente de amplitud: sigue la cima de cada columna y brilla más (hacia
+    // blanco) donde la probabilidad es alta — la función de onda tomando forma.
+    if (this.wave) {
+      if (!this._waveCol) this._waveCol = new THREE.Color();
+      const wp = this.wave.geometry.attributes.position;
+      const wc = this.wave.geometry.attributes.color;
+      for (let i = 0; i < this.bars.length; i++) {
+        const h = this.bars[i].scale.y;
+        wp.array[i * 3 + 1] = h + 0.12;
+        const rel = Math.min(1, (this.targetProbs[i] || 0) * nStates);
+        const hue = i === this.targetIndex ? 0.11 : 0.7 - 0.05 * rel;
+        this._waveCol.setHSL(hue, 0.9, 0.45 + 0.45 * rel);
+        wc.array[i * 3] = this._waveCol.r;
+        wc.array[i * 3 + 1] = this._waveCol.g;
+        wc.array[i * 3 + 2] = this._waveCol.b;
+      }
+      wp.needsUpdate = true;
+      wc.needsUpdate = true;
+    }
+
+    // Momento de revelación: cuando la solución supera el umbral, un choque.
+    if (this.targetIndex >= 0 && !this._revealed && this.bars[this.targetIndex]) {
+      const tp = (this.targetProbs[this.targetIndex] || 0) * nStates;
+      if (tp > 0.85) {
+        this._revealed = true;
+        this._spawnShockwave(this.bars[this.targetIndex].position.x, this.C.saffron);
+      }
+    }
+
     // Haces: siguen la altura de su barra.
     for (const b of this.beams) {
       const bx = b.group.position.x;
@@ -548,6 +725,8 @@ export class QuantumVisualizer {
           new THREE.MeshBasicMaterial({ color: 0x0b1024, transparent: true, opacity: 0.28 })
         )
       );
+      // Halo de Fresnel: la esfera capta luz en el borde (como los cristales).
+      root.add(this._fresnelShell(R * 1.02, this.C.iris, 0.85));
       // ecuador brillante
       const eq = new THREE.Mesh(
         new THREE.TorusGeometry(R, 0.02, 8, 60),
@@ -576,6 +755,22 @@ export class QuantumVisualizer {
       const label = this._label(labels?.[q] ?? 'q' + q, '#9fb4d8');
       label.position.set(0, -R - 0.7, 0);
       root.add(label);
+      // Estela del vector: la punta deja un rastro que se desvanece al moverse.
+      const TN = 28;
+      const tpos = new Float32Array(TN * 3);
+      const tgeo = new THREE.BufferGeometry();
+      tgeo.setAttribute('position', new THREE.BufferAttribute(tpos, 3));
+      const trail = new THREE.Line(
+        tgeo,
+        new THREE.LineBasicMaterial({
+          color: this.C.teal,
+          transparent: true,
+          opacity: 0.5,
+          blending: THREE.AdditiveBlending,
+          depthWrite: false,
+        })
+      );
+      root.add(trail);
       this.blochGroup.add(root);
       this.blochQubits.push({
         root,
@@ -584,15 +779,18 @@ export class QuantumVisualizer {
         currentDir: new THREE.Vector3(0, 1, 0),
         targetDir: new THREE.Vector3(0, 1, 0),
         targetLen: 1,
+        trailPos: tpos,
+        TN,
       });
     }
     // Canales de entrelazamiento (partículas fluyendo) entre qubits adyacentes.
     for (let q = 0; q < nQubits - 1; q++)
       this.channels.push(this._makeChannel(centers[q], centers[q + 1]));
     this.blochCenters = centers;
-    this.camera.position.set(0, 1.5, Math.max(11, totalW * 1.15 + 7));
-    this.controls.target.set(0, R + 0.6, 0);
-    this.controls.update();
+    this._playIntro(
+      new THREE.Vector3(0, 1.5, Math.max(11, totalW * 1.15 + 7)),
+      new THREE.Vector3(0, R + 0.6, 0)
+    );
   }
 
   _makeChannel(a, b) {
@@ -647,7 +845,10 @@ export class QuantumVisualizer {
     }
     if (frame.isFinal && !this._burstDone && this.blochCenters) {
       this._burstDone = true;
-      this._spawnBurst(this.blochCenters[this.blochCenters.length - 1], this.C.saffron);
+      const dest = this.blochCenters[this.blochCenters.length - 1];
+      this._spawnBurst(dest, this.C.saffron);
+      // Pulso de corrección: onda expansiva bajo la esfera destino.
+      this._spawnShockwave(dest.x, this.C.teal);
     }
   }
 
@@ -656,8 +857,23 @@ export class QuantumVisualizer {
       bq.currentDir.lerp(bq.targetDir, 0.1);
       const dir = bq.currentDir.clone().normalize();
       bq.arrow.setDirection(dir);
-      bq.arrow.setLength(Math.max(0.05, bq.targetLen * bq.R), 0.4, 0.24);
-      bq.root.children[2].rotation.z += dt * 0.4; // ecuador gira
+      const len = Math.max(0.05, bq.targetLen * bq.R);
+      bq.arrow.setLength(len, 0.4, 0.24);
+      bq.root.children[3].rotation.z += dt * 0.4; // ecuador (tras añadir el fresnel)
+      // Estela: desplaza el historial y coloca la punta actual al frente.
+      if (bq.trailPos) {
+        const tp = bq.trailPos;
+        for (let i = bq.TN - 1; i > 0; i--) {
+          tp[i * 3] = tp[(i - 1) * 3];
+          tp[i * 3 + 1] = tp[(i - 1) * 3 + 1];
+          tp[i * 3 + 2] = tp[(i - 1) * 3 + 2];
+        }
+        tp[0] = dir.x * len;
+        tp[1] = dir.y * len;
+        tp[2] = dir.z * len;
+        const attr = bq.root.children[bq.root.children.length - 1].geometry.attributes.position;
+        attr.needsUpdate = true;
+      }
     }
     for (const ch of this.channels) {
       const p = ch.pts.geometry.attributes.position;
@@ -734,9 +950,15 @@ export class QuantumVisualizer {
     for (let k = this.rings.length - 1; k >= 0; k--) {
       const r = this.rings[k];
       r.age += dt;
-      const s = 1 + r.age * 6;
+      if (r.age < 0) {
+        r.mesh.material.opacity = 0;
+        continue;
+      }
+      const grow = r.big ? 18 : 6;
+      const s = 1 + r.age * grow;
       r.mesh.scale.set(s, s, s);
-      r.mesh.material.opacity = Math.max(0, 0.65 * (1 - r.age / r.life));
+      const base = r.big ? 0.85 : 0.65;
+      r.mesh.material.opacity = Math.max(0, base * (1 - r.age / r.life));
       if (r.age > r.life) {
         this.fxGroup.remove(r.mesh);
         r.mesh.geometry.dispose();
@@ -762,6 +984,20 @@ export class QuantumVisualizer {
         b.pts.material.dispose();
         this.bursts.splice(k, 1);
       }
+    }
+  }
+
+  _tickIntro(dt) {
+    if (!this._intro) return;
+    const iv = this._intro;
+    iv.t += dt;
+    const k = Math.min(1, iv.t / iv.dur);
+    const e = 1 - Math.pow(1 - k, 3); // easeOutCubic
+    this.camera.position.lerpVectors(iv.fromPos, iv.toPos, e);
+    this.controls.target.lerpVectors(iv.fromTarget, iv.toTarget, e);
+    if (k >= 1) {
+      this.controls.autoRotate = this._introAuto;
+      this._intro = null;
     }
   }
 
@@ -835,8 +1071,17 @@ export class QuantumVisualizer {
       if (this.mode === 'bars') this._tickBars(dt, t);
       else this._tickBloch(dt, t);
       this._animateFX(dt, t);
+      this._tickIntro(dt);
       if (this.nebulaMat) this.nebulaMat.uniforms.uTime.value = t;
       if (this.grainPass) this.grainPass.uniforms.uTime.value = t;
+      if (this.rippleMat && this.ripple.visible) {
+        this.rippleMat.uniforms.uTime.value = t;
+        const cs = this.rippleMat.uniforms.uCenters.value;
+        const n = Math.min(6, this._rippleCenters.length);
+        for (let i = 0; i < n; i++) cs[i].set(this._rippleCenters[i], 0);
+        for (let i = n; i < 6; i++) cs[i].set(9999, 9999);
+        this.rippleMat.uniforms.uCount.value = n;
+      }
       this.controls.update();
       this.composer.render();
     };
@@ -859,6 +1104,7 @@ export class QuantumVisualizer {
       b.position.y = 0.01;
     }
     this.targetProbs = new Array(this.stateSize).fill(0);
+    this._revealed = false;
   }
 
   dispose() {
