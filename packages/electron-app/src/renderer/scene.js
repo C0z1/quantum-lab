@@ -34,6 +34,11 @@ const ui = new UIController({
   onView: (view) => {
     if (view === '3d') setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
   },
+  onTeach: (on) => {
+    state.teachMode = on;
+  },
+  onCapture: () => captureImage(),
+  onExport: () => exportCSV(),
 });
 const chart = new Chart2D(ui.chartCanvas);
 
@@ -55,7 +60,60 @@ const state = {
   params: null,
   presenting: false,
   presentTimer: null,
+  teachMode: false,
 };
+
+// ---------------- exportar / capturar ----------------
+function download(filename, url, revoke) {
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  if (revoke) setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+function dataURLtoBlob(durl) {
+  const [head, b64] = durl.split(',');
+  const mime = (head.match(/:(.*?);/) || [])[1] || 'image/png';
+  const bin = atob(b64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+function captureImage() {
+  try {
+    // dataURL síncrono tras render (fiable), convertido a blob: para que la
+    // descarga funcione en Electron (los data: URL grandes fallan).
+    const url = URL.createObjectURL(dataURLtoBlob(viz.snapshot()));
+    download(`quantum-lab-${state.algo}-${Date.now()}.png`, url, true);
+    ui.log('imagen capturada', 'ok');
+  } catch (e) {
+    ui.log('no se pudo capturar: ' + e.message, 'err');
+  }
+}
+
+function exportCSV() {
+  const f = state.buffer[state.cursor] || state.buffer[state.buffer.length - 1];
+  if (!f || !f.data) {
+    ui.log('ejecuta un algoritmo antes de exportar', 'warn');
+    return;
+  }
+  const n = Math.round(Math.log2(f.stateSize));
+  const rows = ['estado,indice,re,im,prob'];
+  for (let i = 0; i < f.stateSize; i++) {
+    const bits = i.toString(2).padStart(n, '0');
+    rows.push(
+      `|${bits}>,${i},${f.data[i * 3].toFixed(6)},${f.data[i * 3 + 1].toFixed(6)},${f.data[i * 3 + 2].toFixed(6)}`
+    );
+  }
+  const blob = new Blob([rows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  download(`quantum-lab-${state.algo}-estado.csv`, url, true);
+  ui.log(`exportados ${f.stateSize} estados a CSV`, 'ok');
+}
 
 const PILLS = {
   grover: ['prep', 'oráculo', 'difusor', 'medida'],
@@ -462,6 +520,8 @@ function updatePills(step) {
     if (now - state.lastAdvance >= frameDuration()) {
       state.lastAdvance = now;
       setCursor(state.cursor + 1, true);
+      // Modo enseñanza: pausa tras cada paso para leer a tu ritmo.
+      if (state.teachMode) pause();
     }
   } else if (state.runFinal) {
     state.playing = false;

@@ -1184,6 +1184,40 @@ button.btn .ic {
   cursor: pointer;
 }
 
+/* Acciones del popover: capturar / exportar */
+.pop-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+}
+.pop-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border: none;
+  border-radius: var(--r-sm);
+  background: var(--surface-2);
+  color: var(--fg-2);
+  font-family: var(--font);
+  font-size: 12.5px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.pop-btn:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.pop-btn svg {
+  flex: none;
+  color: var(--iris);
+}
+
 /* SVG del circuito */
 .circ-svg {
   display: block;

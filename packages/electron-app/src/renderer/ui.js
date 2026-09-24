@@ -211,6 +211,9 @@ export class UIController {
       onParticles: cb.onParticles || (() => {}),
       onAutoRotate: cb.onAutoRotate || (() => {}),
       onLite: cb.onLite || (() => {}),
+      onTeach: cb.onTeach || (() => {}),
+      onCapture: cb.onCapture || (() => {}),
+      onExport: cb.onExport || (() => {}),
     };
     this.onPresentToggle = cb.onPresentToggle || (() => {});
     this.onView = cb.onView || (() => {});
@@ -378,11 +381,101 @@ export class UIController {
       this.settings.onDefaultSpeed(idx);
     });
     const parts = this.$('set_particles');
-    parts.addEventListener('change', () => this.settings.onParticles(parts.checked));
+    parts.addEventListener('change', () => {
+      this.settings.onParticles(parts.checked);
+      this._saveSettings();
+    });
     const rot = this.$('set_autorot');
-    rot.addEventListener('change', () => this.settings.onAutoRotate(rot.checked));
+    rot.addEventListener('change', () => {
+      this.settings.onAutoRotate(rot.checked);
+      this._saveSettings();
+    });
     const lite = this.$('set_lite');
-    if (lite) lite.addEventListener('change', () => this.settings.onLite(lite.checked));
+    if (lite)
+      lite.addEventListener('change', () => {
+        this.settings.onLite(lite.checked);
+        this._saveSettings();
+      });
+    const teach = this.$('set_teach');
+    if (teach)
+      teach.addEventListener('change', () => {
+        this.settings.onTeach(teach.checked);
+        this._saveSettings();
+      });
+    // Persistir bloom/velocidad al soltar.
+    bloom.addEventListener('change', () => this._saveSettings());
+    speed.addEventListener('change', () => this._saveSettings());
+    // Acciones: capturar imagen / exportar CSV.
+    const cap = this.$('set_capture');
+    if (cap) cap.addEventListener('click', () => this.settings.onCapture());
+    const exp = this.$('set_export');
+    if (exp) exp.addEventListener('click', () => this.settings.onExport());
+
+    // Cargar ajustes guardados y aplicarlos en el siguiente tick: los callbacks
+    // de scene.js referencian su estado, que aún no existe durante el constructor.
+    setTimeout(() => this._loadSettings(), 0);
+  }
+
+  // Persistencia de preferencias (localStorage; tolerante a fallos).
+  _saveSettings() {
+    try {
+      const s = {
+        bloom: +this.$('set_bloom').value,
+        speed: +this.$('set_speed').value,
+        particles: this.$('set_particles').checked,
+        autorot: this.$('set_autorot').checked,
+        lite: this.$('set_lite').checked,
+        teach: this.$('set_teach') ? this.$('set_teach').checked : false,
+      };
+      localStorage.setItem('ql.settings', JSON.stringify(s));
+    } catch {
+      /* almacenamiento no disponible: se ignora */
+    }
+  }
+
+  _loadSettings() {
+    let s;
+    try {
+      s = JSON.parse(localStorage.getItem('ql.settings') || 'null');
+    } catch {
+      s = null;
+    }
+    if (!s) return;
+    const SPEEDS = [0.5, 1, 2, 4];
+    const set = (id, v) => {
+      const el = this.$(id);
+      if (el) el.value = v;
+    };
+    const chk = (id, v) => {
+      const el = this.$(id);
+      if (el) el.checked = !!v;
+    };
+    if (s.bloom != null) {
+      set('set_bloom', s.bloom);
+      this.$('set_bloomV').textContent = (+s.bloom).toFixed(2);
+      this.settings.onBloom(+s.bloom);
+    }
+    if (s.speed != null) {
+      set('set_speed', s.speed);
+      this.$('set_speedV').textContent = (SPEEDS[+s.speed] ?? 1) + '×';
+      this.settings.onDefaultSpeed(+s.speed);
+    }
+    if (s.particles != null) {
+      chk('set_particles', s.particles);
+      this.settings.onParticles(!!s.particles);
+    }
+    if (s.autorot != null) {
+      chk('set_autorot', s.autorot);
+      this.settings.onAutoRotate(!!s.autorot);
+    }
+    if (s.lite != null) {
+      chk('set_lite', s.lite);
+      this.settings.onLite(!!s.lite);
+    }
+    if (s.teach != null) {
+      chk('set_teach', s.teach);
+      this.settings.onTeach(!!s.teach);
+    }
   }
 
   setPresenting(on) {

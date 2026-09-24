@@ -436,7 +436,9 @@ export class QuantumVisualizer {
     const showLabels = stateSize <= 16;
     const bw = spacing * (stateSize > 32 ? 0.85 : 0.62);
     for (let i = 0; i < stateSize; i++) {
-      const geo = new THREE.BoxGeometry(bw, 1, 0.85);
+      // Columna hexagonal ligeramente cónica: cristal de energía, no un cubo.
+      // Una cara plana mira a la cámara y sus 6 aristas captan el Fresnel.
+      const geo = new THREE.CylinderGeometry(bw * 0.46, bw * 0.54, 1, 6);
       const mat = this._barMaterial();
       const bar = new THREE.Mesh(geo, mat);
       bar.position.set(-totalWidth / 2 + i * spacing, 0.5, 0);
@@ -739,6 +741,30 @@ export class QuantumVisualizer {
       );
       eq.rotation.x = Math.PI / 2;
       root.add(eq);
+      // Meridianos: dos círculos máximos que pasan por los polos → esfera de
+      // Bloch como instrumento real, no una bola de alambre.
+      for (let m = 0; m < 2; m++) {
+        const mer = new THREE.Mesh(
+          new THREE.TorusGeometry(R, 0.014, 6, 60),
+          new THREE.MeshBasicMaterial({
+            color: 0x6a5fae,
+            transparent: true,
+            opacity: 0.4,
+            blending: THREE.AdditiveBlending,
+          })
+        );
+        mer.rotation.y = (m * Math.PI) / 2; // 0° y 90°, pasan por |0⟩/|1⟩
+        root.add(mer);
+      }
+      // Polos = estados base. Arriba |0⟩, abajo |1⟩ (pedagógico + instrumento).
+      const p0 = this._label('|0⟩', '#cfe0ff');
+      p0.position.set(0, R + 0.4, 0);
+      p0.scale.set(1.0, 0.4, 1);
+      root.add(p0);
+      const p1 = this._label('|1⟩', '#cfe0ff');
+      p1.position.set(0, -R - 0.36, 0);
+      p1.scale.set(1.0, 0.4, 1);
+      root.add(p1);
       root.add(this._axis(new THREE.Vector3(0, 1, 0), R * 1.15, 0x8fa6cc));
       // flecha de estado (cono brillante)
       const arrow = new THREE.ArrowHelper(
@@ -1096,6 +1122,13 @@ export class QuantumVisualizer {
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
     this.composer.setSize(w, h);
+  }
+
+  // Captura el fotograma actual del lienzo como PNG (dataURL). Se renderiza y
+  // se lee en el mismo turno para no depender de preserveDrawingBuffer.
+  snapshot() {
+    this.composer.render();
+    return this.renderer.domElement.toDataURL('image/png');
   }
 
   reset() {

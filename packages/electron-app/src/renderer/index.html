@@ -42,32 +42,68 @@
         <span class="chip"
           ><span class="led" id="engineLed"></span><span id="engineText">conectando…</span></span
         >
-
-        <!-- Popover de ajustes -->
-        <div class="popover" id="settings" hidden>
-          <div class="pop-h">Ajustes</div>
-          <div class="field">
-            <label>Resplandor (bloom) <b id="set_bloomV">0.70</b></label>
-            <input id="set_bloom" type="range" min="0" max="1.6" step="0.05" value="0.7" />
-          </div>
-          <div class="field">
-            <label>Velocidad por defecto <b id="set_speedV">1×</b></label>
-            <input id="set_speed" type="range" min="0" max="3" step="1" value="1" />
-          </div>
-          <label class="switch">
-            <input id="set_particles" type="checkbox" checked />
-            <span>Partículas y resplandor de eventos</span>
-          </label>
-          <label class="switch">
-            <input id="set_autorot" type="checkbox" checked />
-            <span>Rotación automática de cámara</span>
-          </label>
-          <label class="switch">
-            <input id="set_lite" type="checkbox" />
-            <span>Alto rendimiento (menos efectos)</span>
-          </label>
-        </div>
       </header>
+
+      <!-- Popover de ajustes: fuera de la appbar para poder cubrir los paneles
+           (dentro quedaba atrapado en el contexto de apilamiento del header). -->
+      <div class="popover" id="settings" hidden>
+        <div class="pop-h">Ajustes</div>
+        <div class="field">
+          <label>Resplandor (bloom) <b id="set_bloomV">0.70</b></label>
+          <input id="set_bloom" type="range" min="0" max="1.6" step="0.05" value="0.7" />
+        </div>
+        <div class="field">
+          <label>Velocidad por defecto <b id="set_speedV">1×</b></label>
+          <input id="set_speed" type="range" min="0" max="3" step="1" value="1" />
+        </div>
+        <label class="switch">
+          <input id="set_particles" type="checkbox" checked />
+          <span>Partículas y resplandor de eventos</span>
+        </label>
+        <label class="switch">
+          <input id="set_autorot" type="checkbox" checked />
+          <span>Rotación automática de cámara</span>
+        </label>
+        <label class="switch">
+          <input id="set_lite" type="checkbox" />
+          <span>Alto rendimiento (menos efectos)</span>
+        </label>
+        <label class="switch">
+          <input id="set_teach" type="checkbox" />
+          <span>Modo enseñanza (pausa en cada paso)</span>
+        </label>
+        <div class="pop-actions">
+          <button class="pop-btn" id="set_capture">
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+            >
+              <rect x="3" y="6" width="18" height="13" rx="2" />
+              <circle cx="12" cy="12.5" r="3.2" />
+              <path d="M8 6l1.5-2h5L16 6" />
+            </svg>
+            Capturar imagen
+          </button>
+          <button class="pop-btn" id="set_export">
+            <svg
+              viewBox="0 0 24 24"
+              width="15"
+              height="15"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.7"
+            >
+              <path d="M12 3v12M8 11l4 4 4-4" />
+              <path d="M5 21h14" />
+            </svg>
+            Exportar datos (CSV)
+          </button>
+        </div>
+      </div>
 
       <div class="shell">
         <aside class="nav-col" id="railLeft"></aside>
