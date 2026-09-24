@@ -1,7 +1,63 @@
 /* ============================================================================
-   Quantum Lab — "Dala"-inspired system: pure-black canvas, single violet accent,
-   borderless floating surfaces, airy light typography, 24px radii.
+   Quantum Lab — sistema tech: negro puro, acento violeta, superficies flotantes.
+   Tipografía: Space Grotesk (UI), JetBrains Mono (datos), Orbitron (wordmark/HUD).
    ========================================================================== */
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/space-grotesk-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./assets/fonts/space-grotesk-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./assets/fonts/space-grotesk-latin-600-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/space-grotesk-latin-700-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./assets/fonts/jetbrains-mono-latin-400-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./assets/fonts/jetbrains-mono-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./assets/fonts/orbitron-latin-500-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Orbitron';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('./assets/fonts/orbitron-latin-700-normal.woff2') format('woff2');
+}
 :root {
   --void: #000000;
   --surface: #0b0b0e; /* tarjetas flotantes */
@@ -20,9 +76,9 @@
   --teal: #2ee6b0; /* verdant, aclarado para negro */
   --red: #ff5d6c;
 
-  --font:
-    'PP Neue Montreal', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, 'JetBrains Mono', 'SF Mono', Menlo, Consolas, monospace;
+  --font: 'Space Grotesk', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --display: 'Orbitron', 'Space Grotesk', sans-serif;
 
   --r: 22px;
   --r-sm: 14px;
@@ -46,30 +102,250 @@ body {
   letter-spacing: -0.01em;
 }
 
-/* ---------- App shell ---------- */
+/* ---------- App shell (IDE: nav · lienzo · inspector + consola) ---------- */
 #app {
-  display: grid;
   height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
   background: var(--void);
-  grid-template-columns: 320px 1fr 372px;
-  grid-template-rows: 66px 1fr 30px;
-  grid-template-areas: 'header header header' 'rail stage rail2' 'status status status';
-  gap: 0;
 }
 header.appbar {
-  grid-area: header;
+  flex: none;
+  height: 66px;
 }
-.rail-left {
-  grid-area: rail;
+.shell {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr) 300px;
+  grid-template-rows: minmax(0, 1fr) 0px;
+  background: var(--void);
 }
-.stage {
-  grid-area: stage;
+.shell.console-open {
+  grid-template-rows: minmax(0, 1fr) 210px;
 }
-.rail-right {
-  grid-area: rail2;
+.nav-col {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--void);
+  padding: 12px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
-.statusbar {
-  grid-area: status;
+.canvas-col {
+  grid-column: 2;
+  grid-row: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--void);
+}
+.insp-col {
+  grid-column: 3;
+  grid-row: 1;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--void);
+  padding: 12px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Encabezado del lienzo: título + control segmentado */
+.canvas-header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 18px 10px;
+}
+.chead-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.chead-title {
+  font-family: var(--display);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+}
+.chead-sub {
+  font-size: 11.5px;
+  color: var(--fg-3);
+  font-family: var(--mono);
+}
+.canvas-header .step-pills {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.canvas-header .pill {
+  font-size: 10px;
+  font-family: var(--mono);
+  color: var(--fg-mut);
+  border-radius: var(--pill);
+  padding: 4px 11px;
+  background: var(--surface);
+}
+.canvas-header .pill.on {
+  color: #fff;
+  background: var(--iris);
+}
+
+/* Control segmentado Vista 3D | Circuito */
+.segmented {
+  flex: none;
+  display: inline-flex;
+  padding: 4px;
+  gap: 3px;
+  background: var(--surface);
+  border-radius: var(--pill);
+}
+.seg {
+  border: none;
+  background: transparent;
+  color: var(--fg-3);
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  padding: 7px 16px;
+  border-radius: var(--pill);
+  cursor: pointer;
+  transition:
+    background 0.16s,
+    color 0.16s;
+}
+.seg:hover {
+  color: var(--fg);
+}
+.seg.active {
+  background: var(--iris);
+  color: #fff;
+}
+
+/* Área del lienzo: 3D y circuito nunca se superponen */
+.canvas-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--void);
+}
+.view-circuit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--void);
+}
+.view-circuit[hidden] {
+  display: none;
+}
+.view-circuit .circuit-note {
+  flex: none;
+  padding: 14px 20px 8px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--fg-3);
+}
+.circuit-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 20px 20px;
+}
+.circuit-scroll .circuit-body {
+  padding: 0;
+}
+
+/* Pie del lienzo: transporte + estado + botón consola */
+.canvas-footer {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 18px;
+  background: var(--void);
+}
+.canvas-footer .playback {
+  flex: 0 1 440px;
+  min-width: 0;
+}
+.canvas-footer .statusbar {
+  flex: none;
+  margin-left: auto;
+}
+.ghost-btn {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 13px;
+  border: none;
+  border-radius: var(--pill);
+  background: var(--surface);
+  color: var(--fg-3);
+  font-family: var(--font);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s;
+}
+.ghost-btn:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.ghost-btn.active {
+  background: var(--iris);
+  color: #fff;
+}
+
+/* Consola como cajón inferior (no tapa el lienzo): su alto lo fija la pista
+   del grid (.shell.console-open), evitando ambigüedad de stretch/auto. */
+.console-drawer {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+.console-drawer .cd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px 6px;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+}
+.cd-close {
+  border: none;
+  background: var(--surface-2);
+  color: var(--fg-2);
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.cd-close:hover {
+  background: var(--surface-3);
+  color: var(--fg);
 }
 
 /* ---------- App bar ---------- */
@@ -90,9 +366,10 @@ header.appbar {
   height: 30px;
 }
 .brand .name {
-  font-size: 20px;
-  font-weight: 500;
-  letter-spacing: -0.03em;
+  font-family: var(--display);
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
   color: var(--fg);
 }
 .brand .tag {
@@ -142,17 +419,6 @@ header.appbar {
   }
 }
 
-/* ---------- Rails ---------- */
-.rail-left,
-.rail-right {
-  background: var(--void);
-  overflow-y: auto;
-  padding: 12px 16px 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
 /* Tarjetas: flotan sobre negro, sin bordes ni sombras. */
 .card {
   background: var(--surface);
@@ -175,54 +441,141 @@ header.appbar {
 .nav {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+}
+.nav-group {
+  display: flex;
+  flex-direction: column;
   gap: 4px;
 }
+.nav-glabel {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+  padding: 0 4px 4px;
+  opacity: 0.8;
+}
 .nav .item {
+  position: relative;
   display: flex;
-  gap: 13px;
+  gap: 12px;
   align-items: center;
   width: 100%;
   text-align: left;
-  padding: 13px 14px;
+  padding: 12px 12px 12px 15px;
   border-radius: var(--r-sm);
   cursor: pointer;
   border: none;
-  background: transparent;
+  background: var(--surface);
   color: var(--fg-3);
+  overflow: hidden;
   transition:
-    background 0.16s,
-    color 0.16s;
+    background 0.18s,
+    color 0.18s,
+    transform 0.18s,
+    box-shadow 0.18s;
+}
+/* Barra de acento a la izquierda (aparece en hover/activo) */
+.nav .item .edge {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 3px;
+  height: 60%;
+  border-radius: 0 3px 3px 0;
+  background: linear-gradient(180deg, var(--iris), var(--teal));
+  transition: transform 0.2s ease;
 }
 .nav .item:hover {
   background: var(--surface-2);
   color: var(--fg-2);
+  transform: translateX(2px);
+}
+.nav .item:hover .edge {
+  transform: translateY(-50%) scaleY(1);
 }
 .nav .item.active {
-  background: var(--iris-soft);
+  background:
+    radial-gradient(120% 100% at 0% 50%, rgba(128, 82, 255, 0.22), transparent 60%),
+    var(--surface-2);
   color: var(--fg);
+  box-shadow:
+    inset 0 0 0 1px rgba(128, 82, 255, 0.35),
+    0 6px 22px rgba(128, 82, 255, 0.16);
 }
-.nav .item.active .ic {
-  color: var(--iris);
+.nav .item.active .edge {
+  transform: translateY(-50%) scaleY(1);
+}
+.nav .item .ic-wrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--surface-3);
+  transition:
+    background 0.18s,
+    box-shadow 0.18s;
+}
+.nav .item.active .ic-wrap {
+  background: rgba(128, 82, 255, 0.16);
+  box-shadow: 0 0 18px rgba(128, 82, 255, 0.4);
 }
 .nav .item .ic {
-  width: 22px;
-  height: 22px;
-  flex: none;
+  width: 19px;
+  height: 19px;
   color: var(--fg-mut);
+  transition: color 0.18s;
+}
+.nav .item:hover .ic,
+.nav .item.active .ic {
+  color: var(--iris);
 }
 .nav .item .txt {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
+  flex: 1;
 }
 .nav .item .t {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13.5px;
+  font-weight: 600;
   letter-spacing: -0.01em;
 }
 .nav .item .d {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--fg-mut);
+  font-family: var(--mono);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.nav .item .go {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  color: var(--fg-mut);
+  opacity: 0;
+  transform: translateX(-4px);
+  transition:
+    opacity 0.18s,
+    transform 0.18s,
+    color 0.18s;
+}
+.nav .item:hover .go {
+  opacity: 1;
+  transform: translateX(0);
+}
+.nav .item.active .go {
+  opacity: 1;
+  transform: translateX(0);
+  color: var(--iris);
 }
 
 /* ---------- Controles ---------- */
@@ -405,11 +758,11 @@ button.btn .ic {
 
 /* ---------- Consola ---------- */
 .console {
-  height: 152px;
+  height: 168px;
   overflow-y: auto;
   font-family: var(--mono);
   font-size: 11px;
-  padding: 4px 20px 16px;
+  padding: 2px 20px 16px;
 }
 .console .line {
   display: flex;
@@ -434,69 +787,23 @@ button.btn .ic {
   color: var(--iris);
 }
 
-/* ---------- Stage ---------- */
-.stage {
-  position: relative;
-  overflow: hidden;
-  background: var(--void);
-}
+/* ---------- Lienzo 3D ---------- */
 #viewport {
   width: 100%;
   height: 100%;
   display: block;
 }
-.hud {
-  position: absolute;
-  top: 22px;
-  left: 26px;
-  pointer-events: none;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-.hud .htitle {
-  font-size: 27px;
-  font-weight: 500;
-  letter-spacing: -0.035em;
-}
-.hud .hsub {
-  font-size: 12px;
-  color: var(--fg-3);
-  font-family: var(--mono);
-  letter-spacing: 0;
-}
-.hud .step-pills {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-.hud .pill {
-  font-size: 10px;
-  font-family: var(--mono);
-  color: var(--fg-mut);
-  border-radius: var(--pill);
-  padding: 4px 11px;
-  background: var(--surface);
-}
-.hud .pill.on {
-  color: #fff;
-  background: var(--iris);
-}
-/* Barra de reproducción */
+/* Barra de reproducción (inline en el pie del lienzo) */
 .playback {
-  position: absolute;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 9px 14px;
-  background: rgba(15, 15, 20, 0.86);
-  backdrop-filter: blur(12px);
+  padding: 7px 12px;
+  background: var(--surface);
   border-radius: var(--pill);
-  min-width: 380px;
-  max-width: 62%;
+}
+.playback:empty {
+  display: none;
 }
 .pb-btn {
   width: 34px;
@@ -583,44 +890,53 @@ button.btn .ic {
   transition: opacity 0.28s ease;
 }
 
-.stage .hint {
+.canvas-area .hint {
   position: absolute;
-  bottom: 18px;
-  left: 26px;
+  bottom: 16px;
+  left: 20px;
   font-size: 11px;
   color: var(--fg-mut);
+  pointer-events: none;
 }
-.stage .legend {
+.canvas-area .legend {
   position: absolute;
-  bottom: 18px;
-  right: 26px;
+  bottom: 16px;
+  right: 20px;
   display: flex;
   gap: 16px;
   font-size: 11px;
   color: var(--fg-mut);
   font-family: var(--mono);
+  pointer-events: none;
 }
-.stage .legend span {
+.canvas-area .legend span {
   display: inline-flex;
   align-items: center;
   gap: 7px;
 }
-.stage .legend i {
+.canvas-area .legend i {
   width: 9px;
   height: 9px;
   border-radius: 3px;
 }
+/* Cuando el circuito está activo, oculta pistas del 3D */
+.canvas-area.circuit-active .hint,
+.canvas-area.circuit-active .legend {
+  display: none;
+}
 
-/* ---------- Status bar ---------- */
+/* ---------- Status bar (inline en el pie del lienzo) ---------- */
 .statusbar {
   display: flex;
   align-items: center;
-  gap: 22px;
-  padding: 0 26px;
-  background: var(--void);
+  gap: 18px;
+  background: transparent;
   font-family: var(--mono);
   font-size: 11px;
   color: var(--fg-mut);
+}
+.statusbar:empty {
+  display: none;
 }
 .statusbar .s {
   display: inline-flex;
@@ -717,63 +1033,6 @@ button.btn .ic {
   height: 16px;
   accent-color: var(--iris);
   cursor: pointer;
-}
-
-/* ---- Panel de circuito (overlay sobre el stage) ---- */
-.circuit-panel {
-  position: absolute;
-  top: 20px;
-  right: 22px;
-  max-width: min(560px, 52%);
-  background: rgba(12, 12, 16, 0.82);
-  backdrop-filter: blur(12px);
-  border-radius: var(--r-sm);
-  overflow: hidden;
-  z-index: 12;
-}
-.circuit-h {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 9px 14px;
-  font-size: 10px;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--fg-mut);
-}
-.circuit-h-right {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.circuit-note {
-  font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--fg-3);
-}
-.circuit-toggle {
-  width: 20px;
-  height: 20px;
-  border: none;
-  border-radius: 6px;
-  background: var(--surface-2);
-  color: var(--fg-2);
-  cursor: pointer;
-  font-size: 14px;
-  line-height: 1;
-}
-.circuit-toggle:hover {
-  background: var(--surface-3);
-  color: var(--fg);
-}
-.circuit-body {
-  padding: 4px 12px 12px;
-  overflow-x: auto;
-}
-.circuit-body.collapsed {
-  display: none;
 }
 
 /* SVG del circuito */
@@ -875,22 +1134,46 @@ button.btn .ic {
 .tooltip[hidden] {
   display: none;
 }
-.hud .pill[data-tip],
+.canvas-header .pill[data-tip],
 .metric[data-tip] {
   cursor: help;
 }
 
+/* ---- Responsivo: apila bajo 1024px ---- */
+@media (max-width: 1024px) {
+  .shell {
+    grid-template-columns: 220px minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto 0;
+  }
+  .shell.console-open {
+    grid-template-rows: minmax(0, 1fr) auto 170px;
+  }
+  .insp-col {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    flex-direction: row;
+    flex-wrap: wrap;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  .insp-col > .card {
+    flex: 1 1 260px;
+  }
+  .console-drawer {
+    grid-row: 3;
+  }
+}
+
 /* ---- Modo presentación ---- */
-body.presenting .rail-left,
-body.presenting .rail-right,
-body.presenting .statusbar,
+body.presenting .nav-col,
+body.presenting .insp-col,
+body.presenting .canvas-footer,
 body.presenting .appbar .chip,
-body.presenting .circuit-panel {
+body.presenting .console-drawer {
   display: none;
 }
-body.presenting #app {
-  grid-template-columns: 0 1fr 0;
-  grid-template-rows: 66px 1fr 0;
+body.presenting .shell {
+  grid-template-columns: 0 minmax(0, 1fr) 0;
 }
 .present-overlay {
   position: fixed;

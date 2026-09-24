@@ -60,36 +60,70 @@
             <input id="set_autorot" type="checkbox" checked />
             <span>Rotación automática de cámara</span>
           </label>
+          <label class="switch">
+            <input id="set_lite" type="checkbox" />
+            <span>Alto rendimiento (menos efectos)</span>
+          </label>
         </div>
       </header>
 
-      <aside class="rail-left" id="railLeft"></aside>
+      <div class="shell">
+        <aside class="nav-col" id="railLeft"></aside>
 
-      <main class="stage">
-        <canvas id="viewport"></canvas>
-        <div class="hud" id="hud">
-          <div class="htitle" id="hudTitle">Grover</div>
-          <div class="hsub" id="hudSub">búsqueda cuántica</div>
-          <div class="step-pills" id="hudPills"></div>
-        </div>
-        <div class="circuit-panel" id="circuitPanel">
-          <div class="circuit-h">
-            <span>Circuito</span>
-            <div class="circuit-h-right">
-              <span class="circuit-note" id="circuitNote"></span>
-              <button class="circuit-toggle" id="circuitToggle" title="Mostrar/ocultar">−</button>
+        <main class="canvas-col">
+          <div class="canvas-header">
+            <div class="chead-left">
+              <span class="chead-title" id="hudTitle">Grover</span>
+              <span class="chead-sub" id="hudSub">búsqueda cuántica</span>
+              <div class="step-pills" id="hudPills"></div>
+            </div>
+            <div class="segmented" id="segmented">
+              <button class="seg active" id="seg3d" data-view="3d">Vista 3D</button>
+              <button class="seg" id="segcirc" data-view="circuit">Circuito</button>
             </div>
           </div>
-          <div class="circuit-body" id="circuit"></div>
-        </div>
-        <div class="playback" id="playback"></div>
-        <div class="hint">Arrastra para rotar · rueda para zoom</div>
-        <div class="legend" id="legend"></div>
-      </main>
 
-      <aside class="rail-right" id="railRight"></aside>
+          <div class="canvas-area" id="canvasArea">
+            <canvas id="viewport"></canvas>
+            <div class="view-circuit" id="circuitView" hidden>
+              <div class="circuit-note" id="circuitNote"></div>
+              <div class="circuit-scroll"><div class="circuit-body" id="circuit"></div></div>
+            </div>
+            <div class="hint" id="viewHint">Arrastra para rotar · rueda para zoom</div>
+            <div class="legend" id="legend"></div>
+          </div>
 
-      <footer class="statusbar" id="statusbar"></footer>
+          <div class="canvas-footer">
+            <div class="playback" id="playback"></div>
+            <div class="statusbar" id="statusbar"></div>
+            <button class="ghost-btn" id="btnConsole" title="Consola (Esc)">
+              <svg
+                viewBox="0 0 24 24"
+                width="15"
+                height="15"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+              >
+                <rect x="3" y="5" width="18" height="14" rx="2" />
+                <path d="M7 10l2.5 2L7 14" />
+                <path d="M12.5 14h4" />
+              </svg>
+              Consola
+            </button>
+          </div>
+        </main>
+
+        <aside class="insp-col" id="railRight"></aside>
+
+        <section class="console-drawer" id="consoleDrawer">
+          <div class="cd-head">
+            <span>Consola</span>
+            <button class="cd-close" id="consoleClose" title="Cerrar (Esc)">✕</button>
+          </div>
+          <div class="console" id="console"></div>
+        </section>
+      </div>
     </div>
 
     <!-- Tooltip pedagógico global -->

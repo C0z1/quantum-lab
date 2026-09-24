@@ -151,12 +151,19 @@ async function runCaptureAndExit(pngPath) {
     });
     await new Promise((r) => setTimeout(r, 900));
     // Conduce la UI real: selecciona la pestaña y ejecuta.
+    const view = process.env.QL_VIEW || '3d';
     await mainWindow.webContents.executeJavaScript(`
       (function(){
         const tab = document.querySelector('[data-algo="${algo}"]');
         if (tab) tab.click();
         const run = document.getElementById('run');
         if (run) run.click();
+        const seg = document.querySelector('[data-view="${view}"]');
+        if (seg) seg.click();
+        if (${process.env.QL_CONSOLE ? 'true' : 'false'}) {
+          const cb = document.getElementById('btnConsole');
+          if (cb) cb.click();
+        }
         return !!run;
       })();
     `);

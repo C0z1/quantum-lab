@@ -67,32 +67,86 @@ export class UIController {
       onDefaultSpeed: cb.onDefaultSpeed || (() => {}),
       onParticles: cb.onParticles || (() => {}),
       onAutoRotate: cb.onAutoRotate || (() => {}),
+      onLite: cb.onLite || (() => {}),
     };
     this.onPresentToggle = cb.onPresentToggle || (() => {});
+    this.onView = cb.onView || (() => {});
     this.algo = 'grover';
+    this.view = '3d';
     this.$ = (id) => document.getElementById(id);
     this._buildLeft();
-    this._buildRight();
+    this._buildInspector();
     this._buildStatus();
     this._buildPlayback();
     this._buildParams('grover');
-    this._buildCircuit();
+    this._buildSegmented();
+    this._buildConsoleDrawer();
     this._buildTooltips();
     this._buildSettings();
     this.chartCanvas = this.$('chart');
     this.setHud('grover');
   }
 
-  // ---------------- VISTA DE CIRCUITO ----------------
-  _buildCircuit() {
-    this._circuitCollapsed = false;
-    const t = this.$('circuitToggle');
-    if (t)
-      t.addEventListener('click', () => {
-        this._circuitCollapsed = !this._circuitCollapsed;
-        this.$('circuit').classList.toggle('collapsed', this._circuitCollapsed);
-        t.textContent = this._circuitCollapsed ? '+' : '−';
-      });
+  // ---------------- CONTROL SEGMENTADO (Vista 3D | Circuito) ----------------
+  _buildSegmented() {
+    const seg = this.$('segmented');
+    if (!seg) return;
+    seg
+      .querySelectorAll('.seg')
+      .forEach((b) => b.addEventListener('click', () => this.setView(b.dataset.view)));
+  }
+
+  // Cambia entre la vista 3D y el circuito (mutuamente excluyentes). La lógica
+  // de mostrar/ocultar y redimensionar el lienzo la ejecuta scene.js vía onView.
+  setView(view) {
+    if (view === this.view) return;
+    this.view = view;
+    const seg = this.$('segmented');
+    if (seg)
+      seg
+        .querySelectorAll('.seg')
+        .forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+    const area = this.$('canvasArea');
+    if (area) area.classList.toggle('circuit-active', view === 'circuit');
+    const cv = this.$('circuitView');
+    if (cv) cv.hidden = view !== 'circuit';
+    const vp = this.$('viewport');
+    if (vp) vp.style.visibility = view === 'circuit' ? 'hidden' : 'visible';
+    this.onView(view);
+  }
+
+  // ---------------- CONSOLA (cajón inferior) ----------------
+  _buildConsoleDrawer() {
+    this._consoleOpen = false;
+    const btn = this.$('btnConsole');
+    const close = this.$('consoleClose');
+    if (btn) btn.addEventListener('click', () => this.toggleConsole());
+    if (close) close.addEventListener('click', () => this.setConsole(false));
+    document.addEventListener('keydown', (e) => {
+      if (
+        e.key === 'Escape' &&
+        this._consoleOpen &&
+        !document.body.classList.contains('presenting')
+      ) {
+        this.setConsole(false);
+      }
+    });
+  }
+
+  setConsole(open) {
+    this._consoleOpen = open;
+    const shell = document.querySelector('.shell');
+    if (shell) shell.classList.toggle('console-open', open);
+    const btn = this.$('btnConsole');
+    if (btn) btn.classList.toggle('active', open);
+    if (open) {
+      const c = this.$('console');
+      if (c) c.scrollTop = c.scrollHeight;
+    }
+  }
+
+  toggleConsole() {
+    this.setConsole(!this._consoleOpen);
   }
 
   setCircuit(algo, params) {
@@ -183,6 +237,8 @@ export class UIController {
     parts.addEventListener('change', () => this.settings.onParticles(parts.checked));
     const rot = this.$('set_autorot');
     rot.addEventListener('change', () => this.settings.onAutoRotate(rot.checked));
+    const lite = this.$('set_lite');
+    if (lite) lite.addEventListener('change', () => this.settings.onLite(lite.checked));
   }
 
   setPresenting(on) {
@@ -271,41 +327,36 @@ export class UIController {
 
   // ---------------- LEFT RAIL ----------------
   _buildLeft() {
-    const nav = Object.entries(ALGOS)
-      .map(
-        ([k, a]) => `
+    // Menú cuántico agrupado por familia conceptual.
+    const GROUPS = [
+      { label: 'Búsqueda y oráculos', items: ['grover', 'dj', 'bv'] },
+      { label: 'Fourier y fase', items: ['qft', 'shor'] },
+      { label: 'Entrelazamiento', items: ['teleport'] },
+    ];
+    const card = (k) => {
+      const a = ALGOS[k];
+      return `
       <button class="item ${k === 'grover' ? 'active' : ''}" data-algo="${k}">
-        ${ICONS[k]}
+        <span class="edge"></span>
+        <span class="ic-wrap">${ICONS[k]}</span>
         <span class="txt"><span class="t">${a.name}</span><span class="d">${a.desc}</span></span>
-      </button>`
-      )
-      .join('');
+        <svg class="go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg>
+      </button>`;
+    };
+    const nav = GROUPS.map(
+      (g) =>
+        `<div class="nav-group"><span class="nav-glabel">${g.label}</span>${g.items.map(card).join('')}</div>`
+    ).join('');
 
     this.$('railLeft').innerHTML = `
       <div class="card">
-        <div class="card-h">Algoritmo</div>
+        <div class="card-h">Algoritmo cuántico</div>
         <div class="card-b"><div class="nav">${nav}</div></div>
-      </div>
-      <div class="card">
-        <div class="card-h">Parámetros</div>
-        <div class="card-b">
-          <div id="params"></div>
-          <div class="actions" style="margin-top:16px">
-            <button class="btn primary" id="run">
-              <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ejecutar
-            </button>
-            <button class="btn" id="reset">
-              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-3M4 14a8 8 0 0 0 14 3"/></svg> Reset
-            </button>
-          </div>
-        </div>
       </div>`;
 
     this.$('railLeft')
       .querySelectorAll('.nav .item')
       .forEach((b) => b.addEventListener('click', () => this._selectTab(b.dataset.algo)));
-    this.$('run').addEventListener('click', () => this.onRun(this.algo, this.getParams()));
-    this.$('reset').addEventListener('click', () => this.onReset());
     const present = this.$('btnPresent');
     if (present) present.addEventListener('click', () => this.onPresentToggle());
     const presentExit = this.$('presentExit');
@@ -408,9 +459,23 @@ export class UIController {
     }
   }
 
-  // ---------------- RIGHT RAIL ----------------
-  _buildRight() {
+  // ---------------- INSPECTOR (rail derecho) ----------------
+  _buildInspector() {
     this.$('railRight').innerHTML = `
+      <div class="card">
+        <div class="card-h">Parámetros</div>
+        <div class="card-b">
+          <div id="params"></div>
+          <div class="actions" style="margin-top:16px">
+            <button class="btn primary" id="run">
+              <svg class="ic" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Ejecutar
+            </button>
+            <button class="btn" id="reset">
+              <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-3M4 14a8 8 0 0 0 14 3"/></svg> Reset
+            </button>
+          </div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-h">Telemetría</div>
         <div class="card-b"><div class="metrics" id="metrics"></div></div>
@@ -422,20 +487,13 @@ export class UIController {
       <div class="card">
         <div class="card-h">Vector de estado</div>
         <div class="card-b" style="padding:8px 12px"><table class="table" id="stateTable"><tbody></tbody></table></div>
-      </div>
-      <div class="card">
-        <div class="card-h">Consola</div>
-        <div class="console" id="console"></div>
       </div>`;
+    this.$('run').addEventListener('click', () => this.onRun(this.algo, this.getParams()));
+    this.$('reset').addEventListener('click', () => this.onReset());
   }
 
   _buildStatus() {
     this.$('statusbar').innerHTML = `
-      <span class="s"><b>cmd</b> ipc:///tmp/quantum-lab-cmd</span>
-      <span class="s"><b>stream</b> ipc:///tmp/quantum-lab-stream</span>
-      <span class="spacer"></span>
-      <span class="s"><b>qubits</b> <span id="sb_q">—</span></span>
-      <span class="s"><b>dim</b> <span id="sb_dim">—</span></span>
       <span class="s"><b>frames</b> <span id="sb_frames">0</span></span>
       <span class="s"><b>Δt</b> <span id="sb_dt">—</span></span>`;
   }
@@ -522,10 +580,14 @@ export class UIController {
   }
 
   setStatus({ qubits, dim, frames, dt } = {}) {
-    if (qubits !== undefined) this.$('sb_q').textContent = qubits;
-    if (dim !== undefined) this.$('sb_dim').textContent = dim;
-    if (frames !== undefined) this.$('sb_frames').textContent = frames;
-    if (dt !== undefined) this.$('sb_dt').textContent = dt;
+    const set = (id, v) => {
+      const el = this.$(id);
+      if (el) el.textContent = v;
+    };
+    if (qubits !== undefined) set('sb_q', qubits);
+    if (dim !== undefined) set('sb_dim', dim);
+    if (frames !== undefined) set('sb_frames', frames);
+    if (dt !== undefined) set('sb_dt', dt);
   }
 
   setHud(algo, pills) {

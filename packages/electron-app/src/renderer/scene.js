@@ -24,11 +24,16 @@ const ui = new UIController({
   onBloom: (v) => viz.setBloom(v),
   onParticles: (on) => viz.setParticles(on),
   onAutoRotate: (on) => viz.setAutoRotate(on),
+  onLite: (on) => viz.setLiteMode(on),
   onDefaultSpeed: (idx) => {
     state.speedIdx = idx;
     ui.setPlayback({ speed: SPEEDS[idx] });
   },
   onPresentToggle: () => togglePresent(),
+  // Cambio de vista (3D | Circuito): reflow del lienzo WebGL al volver a 3D.
+  onView: (view) => {
+    if (view === '3d') setTimeout(() => window.dispatchEvent(new Event('resize')), 60);
+  },
 });
 const chart = new Chart2D(ui.chartCanvas);
 
@@ -287,6 +292,7 @@ async function runAlgorithm(algo, params) {
     }
   } catch (e) {
     ui.log('error: ' + e.message, 'err');
+    ui.setConsole(true); // abre la consola automáticamente ante un error
     console.error(e);
   }
 }
@@ -476,6 +482,7 @@ window.quantumAPI.onEngineStatus((s) => {
           : 'motor desconectado',
       s.connected ? 'ok' : s.fatal ? 'err' : 'warn'
     );
+    if (s.fatal) ui.setConsole(true); // fallo fatal: abre la consola
   }
 });
 
