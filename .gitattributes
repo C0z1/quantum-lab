@@ -1,0 +1,21 @@
+# Normaliza finales de línea entre Windows/macOS/Linux para evitar que un commit
+# desde Windows (autocrlf) rompa scripts en CI o el .bat en el equipo del usuario.
+* text=auto eol=lf
+
+# Scripts POSIX: siempre LF (los ejecuta bash en CI).
+*.sh text eol=lf
+
+# Batch de Windows: siempre CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+
+# Binarios: sin normalización.
+*.woff2 binary
+*.png binary
+*.jpg binary
+*.ico binary
+*.icns binary
+*.dmg binary
+*.exe binary
+*.AppImage binary

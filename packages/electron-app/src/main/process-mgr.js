@@ -128,17 +128,34 @@ class ProcessManager extends EventEmitter {
     return this._python;
   }
 
-  validateWithPython(cmd) {
+  // Envía un comando por stdin y espera UNA línea JSON completa por stdout.
+  // Acumula chunks hasta el primer salto de línea (un payload grande puede
+  // llegar troceado) y aborta por timeout para no colgar la petición.
+  validateWithPython(cmd, timeoutMs = 20000) {
     return new Promise((resolve, reject) => {
-      if (!this._python) return reject(new Error('python not started'));
-      const onData = (buf) => {
-        this._python.stdout.off('data', onData);
+      if (!this._python || this._python.exitCode !== null) {
+        return reject(new Error('bridge Python no disponible'));
+      }
+      let buf = '';
+      const cleanup = () => {
+        if (this._python) this._python.stdout.off('data', onData);
+        clearTimeout(timer);
+      };
+      const onData = (d) => {
+        buf += d.toString();
+        const nl = buf.indexOf('\n');
+        if (nl < 0) return; // aún no llega la línea completa
+        cleanup();
         try {
-          resolve(JSON.parse(buf.toString().trim().split('\n').pop()));
+          resolve(JSON.parse(buf.slice(0, nl).trim()));
         } catch (e) {
           reject(e);
         }
       };
+      const timer = setTimeout(() => {
+        cleanup();
+        reject(new Error('timeout de validación Python'));
+      }, timeoutMs);
       this._python.stdout.on('data', onData);
       this._python.stdin.write(JSON.stringify(cmd) + '\n');
     });

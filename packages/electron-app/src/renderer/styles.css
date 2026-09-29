@@ -394,6 +394,13 @@ header.appbar {
   border-radius: var(--pill);
   padding: 8px 15px;
 }
+.chip.verified {
+  color: var(--teal);
+  cursor: help;
+}
+.chip.verified[hidden] {
+  display: none;
+}
 .led {
   width: 7px;
   height: 7px;
@@ -1358,6 +1365,77 @@ body.presenting .console-drawer {
 body.presenting .shell {
   grid-template-columns: 0 minmax(0, 1fr) 0;
 }
+/* ---- Overlay de ayuda / atajos ---- */
+.help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 12, 0.55);
+  backdrop-filter: blur(6px);
+}
+.help-overlay[hidden] {
+  display: none;
+}
+.help-card {
+  width: min(440px, 92vw);
+  background: rgba(12, 13, 26, 0.96);
+  border-radius: var(--r);
+  padding: 20px 22px 22px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+.help-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+  margin-bottom: 12px;
+}
+.help-close {
+  border: none;
+  background: var(--surface-2);
+  color: var(--fg-2);
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.help-close:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.help-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.help-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 13px;
+  color: var(--fg-2);
+}
+.help-row kbd {
+  flex: none;
+  min-width: 74px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--fg);
+  background: var(--surface-2);
+  border-radius: 8px;
+  padding: 6px 8px;
+  box-shadow: inset 0 0 0 1px var(--hair);
+}
+
 .present-overlay {
   position: fixed;
   inset: 0;
@@ -1402,4 +1480,244 @@ body.presenting .shell {
 .present-exit:hover {
   background: var(--surface-3);
   color: var(--fg);
+}
+
+/* ---------- Panel de validación (evidencia C++ vs Qiskit) ---------- */
+.valid-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 72;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(4, 5, 12, 0.6);
+  backdrop-filter: blur(6px);
+}
+.valid-overlay[hidden] {
+  display: none;
+}
+.valid-card {
+  width: min(560px, 94vw);
+  max-height: 86vh;
+  display: flex;
+  flex-direction: column;
+  background: rgba(12, 13, 26, 0.97);
+  border-radius: var(--r);
+  padding: 20px 22px 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
+}
+.valid-h {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+  margin-bottom: 14px;
+}
+.valid-close {
+  border: none;
+  background: var(--surface-2);
+  color: var(--fg-2);
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+.valid-close:hover {
+  background: var(--surface-3);
+  color: var(--fg);
+}
+.valid-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--surface-1, rgba(255, 255, 255, 0.03));
+  border-radius: var(--r-sm);
+  margin-bottom: 14px;
+}
+.vs-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  padding: 6px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.vs-badge.ok {
+  color: var(--accent, #2ee6b0);
+  background: color-mix(in srgb, var(--accent, #2ee6b0) 14%, transparent);
+}
+.vs-badge.fail {
+  color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.14);
+}
+.vs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px 18px;
+  flex: 1;
+}
+.vs-grid > div {
+  display: flex;
+  flex-direction: column;
+}
+.vs-k {
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--fg-mut);
+}
+.vs-v {
+  font-size: 12.5px;
+  color: var(--fg);
+  font-family: var(--mono, monospace);
+}
+.valid-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.valg {
+  border: 1px solid var(--hair, rgba(255, 255, 255, 0.08));
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.valg > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  font-size: 13px;
+  color: var(--fg);
+}
+.valg > summary::-webkit-details-marker {
+  display: none;
+}
+.valg-n {
+  font-weight: 600;
+}
+.valg-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--fg-mut);
+  font-family: var(--mono, monospace);
+}
+.valg-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.valg-dot.ok {
+  background: var(--accent, #2ee6b0);
+}
+.valg-dot.fail {
+  background: #ff6b6b;
+}
+.valg-t {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+.valg-t th {
+  text-align: left;
+  padding: 6px 12px;
+  color: var(--fg-mut);
+  font-weight: 500;
+  font-size: 9.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-top: 1px solid var(--hair, rgba(255, 255, 255, 0.08));
+}
+.valg-t td {
+  padding: 5px 12px;
+  color: var(--fg-2);
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.valg-t td.vc-d {
+  font-family: var(--mono, monospace);
+  color: var(--fg);
+}
+.valg-t td.vc-ok {
+  color: var(--accent, #2ee6b0);
+  text-align: center;
+}
+.valg-t tr.fail td.vc-ok {
+  color: #ff6b6b;
+}
+.valid-foot {
+  margin-top: 12px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--fg-mut);
+}
+
+/* Validación en vivo dentro del panel */
+.valid-live {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent, #2ee6b0) 26%, transparent);
+  border-radius: var(--r-sm);
+  background: color-mix(in srgb, var(--accent, #2ee6b0) 6%, transparent);
+}
+.vl-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 180px;
+}
+.vl-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--fg);
+}
+.vl-sub {
+  font-size: 11px;
+  color: var(--fg-mut);
+}
+.vl-btn {
+  flex: 0 0 auto;
+  padding: 9px 14px;
+  border: 1px solid color-mix(in srgb, var(--accent, #2ee6b0) 40%, transparent);
+  background: transparent;
+  color: var(--accent, #2ee6b0);
+}
+.vl-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent, #2ee6b0) 12%, transparent);
+}
+.vl-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.vl-result {
+  flex-basis: 100%;
+  font-size: 12px;
+  font-family: var(--mono, monospace);
+  color: var(--fg-mut);
+  min-height: 16px;
+}
+.vl-result.ok {
+  color: var(--accent, #2ee6b0);
+}
+.vl-result.fail {
+  color: #ff6b6b;
+}
+.vl-result.warn {
+  color: #ffb829;
 }

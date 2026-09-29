@@ -2,6 +2,8 @@
 // telemetría, tabla de amplitudes, consola de eventos, status bar, HUD) y expone
 // una API para que scene.js lo alimente. No toca Three.js ni el IPC.
 import { buildCircuit, renderCircuitSVG, GATE_TIPS } from './circuit.js';
+// Resultados reales de la validación cruzada C++ vs Qiskit (scripts/gen_validation.py).
+import VALIDATION from './validation.json';
 
 // Glosario para tooltips pedagógicos (pills de la HUD y términos).
 const GLOSSARY = {
@@ -193,10 +195,22 @@ const NARRATION = {
 };
 
 export class UIController {
+  // Ejemplos canónicos ("de libro") por algoritmo — valores de los inputs del
+  // panel Parámetros que dan el resultado más claro para alguien nuevo.
+  static PRESETS = {
+    grover: { g_nq: 3, g_tgt: 5, g_it: 2 }, // 3 qubits, |101⟩, 2 iteraciones → ~0.945
+    teleport: { t_th: 60, t_ph: 45 }, // estado |ψ⟩ no trivial, fidelidad 1.000
+    shor: { s_N: 15, s_a: 7 }, // 15 = 3·5 con base a=7 (periodo r=4)
+    dj: { dj_nq: 3, dj_bal: 1 }, // oráculo balanceado (el caso interesante)
+    bv: { bv_nq: 4, bv_h: 11 }, // cadena oculta 1011
+    qft: { q_nq: 4, q_m: 2 }, // peine → 4 picos espaciados
+  };
+
   constructor(cb) {
     this.onRun = cb.onRun;
     this.onReset = cb.onReset;
     this.onTab = cb.onTab;
+    this.onValidateLive = cb.onValidateLive;
     this.pb = {
       onPlay: cb.onPlay,
       onStep: cb.onStep,
@@ -229,6 +243,7 @@ export class UIController {
     this._buildConsoleDrawer();
     this._buildTooltips();
     this._buildSettings();
+    this._buildHelp();
     this.chartCanvas = this.$('chart');
     this.setHud('grover');
     this.setGuide('grover');
@@ -478,6 +493,36 @@ export class UIController {
     }
   }
 
+  // ---------------- AYUDA / ATAJOS ----------------
+  _buildHelp() {
+    const close = this.$('helpClose');
+    if (close) close.addEventListener('click', () => this.toggleHelp(false));
+    const btn = this.$('btnHelp');
+    if (btn) btn.addEventListener('click', () => this.toggleHelp());
+    // Panel de validación: cerrar con la ✕ o clic en el fondo.
+    const vClose = this.$('validClose');
+    if (vClose) vClose.addEventListener('click', () => this.toggleValidation(false));
+    const vOver = this.$('validOverlay');
+    if (vOver)
+      vOver.addEventListener('click', (e) => {
+        if (e.target === vOver) this.toggleValidation(false);
+      });
+  }
+
+  isHelpOpen() {
+    const o = this.$('helpOverlay');
+    return !!o && !o.hidden;
+  }
+
+  toggleHelp(force) {
+    const o = this.$('helpOverlay');
+    if (!o) return;
+    const open = force === undefined ? o.hidden : !!force;
+    o.hidden = !open;
+    const btn = this.$('btnHelp');
+    if (btn) btn.classList.toggle('active', open);
+  }
+
   setPresenting(on) {
     document.body.classList.toggle('presenting', on);
     this.$('presentOverlay').hidden = !on;
@@ -719,6 +764,9 @@ export class UIController {
               <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4v6h6M20 20v-6h-6"/><path d="M20 10a8 8 0 0 0-14-3M4 14a8 8 0 0 0 14 3"/></svg> Reset
             </button>
           </div>
+          <button class="btn ghost preset-btn" id="preset" title="Carga el ejemplo canónico de este algoritmo y lo ejecuta">
+            <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9"><path d="M12 3l2.09 5.26L20 9l-4 3.5L17 19l-5-3-5 3 1-6.5L4 9l5.91-.74z"/></svg> Ejemplo clásico
+          </button>
         </div>
       </div>
       <div class="card">
@@ -735,6 +783,33 @@ export class UIController {
       </div>`;
     this.$('run').addEventListener('click', () => this.onRun(this.algo, this.getParams()));
     this.$('reset').addEventListener('click', () => this.onReset());
+    this.$('preset').addEventListener('click', () => this.applyPreset(this.algo));
+  }
+
+  // Ejemplo canónico por algoritmo: los valores "de libro de texto" que
+  // producen el resultado más didáctico (Grover 3q → |101⟩, Shor 15 con a=7, …).
+  applyPreset(algo) {
+    const P = UIController.PRESETS[algo];
+    if (!P) return;
+    for (const [id, val] of Object.entries(P)) {
+      const el = this.$(id);
+      if (!el) continue;
+      el.value = String(val);
+      // Dispara los handlers de sincronización ya conectados en _buildParams.
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+      el.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    this.onRun(algo, this.getParams());
+  }
+
+  // Progreso de la línea de tiempo (0..1) → barra superior con easing "colapso
+  // cuántico" (overshoot vía CSS). Se llama desde scene.js en cada cursor.
+  setProgress(frac) {
+    const fill = this.$('progressFill');
+    if (!fill) return;
+    const p = Math.max(0, Math.min(1, frac || 0));
+    fill.style.width = (p * 100).toFixed(2) + '%';
+    fill.classList.toggle('done', p >= 0.999);
   }
 
   _buildStatus() {
@@ -839,6 +914,7 @@ export class UIController {
     const a = ALGOS[algo];
     this.$('hudTitle').textContent = a.name;
     this.$('hudSub').textContent = a.hudSub;
+    this.setVerified(algo);
     if (pills)
       this.$('hudPills').innerHTML = pills
         .map(
@@ -852,6 +928,154 @@ export class UIController {
     this.$('legend').innerHTML = (items || [])
       .map((i) => `<span><i style="background:${i.color}"></i>${i.label}</span>`)
       .join('');
+  }
+
+  // ---------------- SELLO DE VALIDACIÓN (C++ vs Qiskit) ----------------
+  // Muestra la divergencia real medida contra Qiskit para el algoritmo activo.
+  setVerified(algo) {
+    const chip = this.$('verifiedChip');
+    if (!chip || !VALIDATION) return;
+    if (algo === this._verifiedAlgo) return; // idempotente (setHud corre por frame)
+    this._verifiedAlgo = algo;
+    const a = VALIDATION.algos[algo];
+    const txt = this.$('verifiedText');
+    const exp = (x) => Number(x).toExponential(1);
+    chip.hidden = false;
+    chip.classList.toggle('ok', !!VALIDATION.pass);
+    const totalCases = Object.values(VALIDATION.algos).reduce((s, x) => s + (x.cases || 0), 0);
+    if (a) {
+      if (txt) txt.textContent = `Verificado vs Qiskit · Δ ${exp(a.maxDelta)}`;
+      chip.title =
+        `Motor C++ contrastado con ${VALIDATION.reference}.\n` +
+        `${a.name}: divergencia máx. Δ=${exp(a.maxDelta)} en ${a.cases} casos ` +
+        `(tolerancia ${exp(VALIDATION.tolerance)}).\n` +
+        `Global: Δ=${exp(VALIDATION.overallMaxDelta)} en ${totalCases} casos · ${VALIDATION.generatedAt}.`;
+    } else {
+      if (txt) txt.textContent = 'Verificado vs Qiskit';
+      chip.title = `Motor validado contra ${VALIDATION.reference} · Δ < ${exp(VALIDATION.tolerance)}`;
+    }
+    // El sello es interactivo: abre el panel con la evidencia completa.
+    if (!chip._wired) {
+      chip._wired = true;
+      chip.style.cursor = 'pointer';
+      chip.setAttribute('role', 'button');
+      chip.setAttribute('tabindex', '0');
+      chip.addEventListener('click', () => this.toggleValidation(true));
+      chip.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.toggleValidation(true);
+        }
+      });
+    }
+  }
+
+  // ---------------- PANEL DE VALIDACIÓN ----------------
+  // Evidencia completa y auditable: cada caso probado contra Qiskit con su
+  // divergencia real. Hace honesto y transparente el sello del encabezado.
+  isValidationOpen() {
+    const o = this.$('validOverlay');
+    return o && !o.hidden;
+  }
+
+  toggleValidation(force) {
+    const o = this.$('validOverlay');
+    if (!o) return;
+    const show = force === undefined ? o.hidden : !!force;
+    if (show) this._buildValidation();
+    o.hidden = !show;
+  }
+
+  _buildValidation() {
+    if (!VALIDATION) return;
+    const exp = (x) => Number(x).toExponential(2);
+    const total = Object.values(VALIDATION.algos).reduce((s, x) => s + (x.cases || 0), 0);
+    const okAll = !!VALIDATION.pass;
+    this.$('validSummary').innerHTML = `
+      <div class="vs-badge ${okAll ? 'ok' : 'fail'}">${okAll ? 'TODAS PASAN' : 'REVISAR'}</div>
+      <div class="vs-grid">
+        <div><span class="vs-k">Referencia</span><span class="vs-v">${VALIDATION.reference}</span></div>
+        <div><span class="vs-k">Casos</span><span class="vs-v">${total}</span></div>
+        <div><span class="vs-k">Δ máx global</span><span class="vs-v">${exp(VALIDATION.overallMaxDelta)}</span></div>
+        <div><span class="vs-k">Tolerancia</span><span class="vs-v">${exp(VALIDATION.tolerance)}</span></div>
+        <div><span class="vs-k">Generado</span><span class="vs-v">${VALIDATION.generatedAt}</span></div>
+      </div>`;
+    const active = this._verifiedAlgo;
+    const sections = Object.entries(VALIDATION.algos)
+      .map(([key, a]) => {
+        const detail = a.detail || [];
+        const rows = detail
+          .map(
+            (c) => `
+          <tr class="${c.delta < VALIDATION.tolerance ? '' : 'fail'}">
+            <td>${c.label}</td>
+            <td class="vc-d">${exp(c.delta)}</td>
+            <td class="vc-ok">${c.delta < VALIDATION.tolerance ? '✓' : '✗'}</td>
+          </tr>`
+          )
+          .join('');
+        return `
+        <details class="valg" ${key === active ? 'open' : ''}>
+          <summary>
+            <span class="valg-n">${a.name}</span>
+            <span class="valg-meta">${a.cases} casos · Δmáx ${exp(a.maxDelta)}
+              <span class="valg-dot ${a.pass ? 'ok' : 'fail'}"></span></span>
+          </summary>
+          <table class="valg-t"><tbody>
+            <tr><th>caso</th><th>Δ (C++ vs Qiskit)</th><th>&nbsp;</th></tr>
+            ${rows}
+          </tbody></table>
+        </details>`;
+      })
+      .join('');
+    const activeName = (VALIDATION.algos[active] || {}).name || 'este run';
+    this.$('validBody').innerHTML =
+      `
+      <div class="valid-live" id="validLive">
+        <div class="vl-info">
+          <span class="vl-title">Validación en vivo</span>
+          <span class="vl-sub">Compara ${activeName} con los parámetros actuales contra Qiskit, al vuelo.</span>
+        </div>
+        <button class="btn ghost vl-btn" id="btnValidateLive">Validar este run</button>
+        <span class="vl-result" id="vlResult"></span>
+      </div>` + sections;
+    this.$('validFoot').textContent =
+      `Δ = divergencia máxima entre la probabilidad del motor C++ y la referencia de ` +
+      `${VALIDATION.reference} sobre todos los estados. Menor es mejor; el umbral es la tolerancia.`;
+
+    const btn = this.$('btnValidateLive');
+    if (btn && this.onValidateLive) {
+      btn.addEventListener('click', () => this._runLiveValidation());
+    } else if (btn) {
+      btn.disabled = true;
+    }
+  }
+
+  async _runLiveValidation() {
+    const btn = this.$('btnValidateLive');
+    const out = this.$('vlResult');
+    if (!btn || !out) return;
+    const exp = (x) => Number(x).toExponential(2);
+    btn.disabled = true;
+    out.className = 'vl-result';
+    out.textContent = 'Validando contra Qiskit…';
+    try {
+      const r = await this.onValidateLive();
+      if (r && r.ok) {
+        out.className = 'vl-result ' + (r.pass ? 'ok' : 'fail');
+        out.textContent = r.pass
+          ? `✓ Coincide · Δ ${exp(r.delta)} < ${exp(r.tolerance)} · ${r.reference}`
+          : `✗ Divergencia Δ ${exp(r.delta)} ≥ ${exp(r.tolerance)}`;
+      } else {
+        out.className = 'vl-result warn';
+        out.textContent = 'No disponible: ' + ((r && r.error) || 'error') + '.';
+      }
+    } catch (e) {
+      out.className = 'vl-result warn';
+      out.textContent = 'No disponible: ' + e.message + '.';
+    } finally {
+      btn.disabled = false;
+    }
   }
 
   // ---------------- GUÍA PEDAGÓGICA ----------------

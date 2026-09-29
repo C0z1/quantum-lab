@@ -3,6 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Política de seguridad de contenido: scripts solo desde la propia app
+         (sin eval), estilos en línea permitidos (barras de probabilidad y
+         anchos dinámicos), sin conexiones ni objetos externos. -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-src 'none'"
+    />
     <title>Quantum Lab</title>
     <link rel="stylesheet" href="styles.css" />
     <!-- Capa de inmersión: sobrescribe el layout por overlays sobre el lienzo. -->
@@ -10,6 +17,11 @@
   </head>
   <body>
     <div id="app">
+      <!-- Barra de progreso de la línea de tiempo: fina, en el borde superior.
+           El relleno usa el easing "colapso cuántico" (overshoot) del brief §5.6. -->
+      <div class="progress-rail" id="progressRail" aria-hidden="true">
+        <div class="progress-rail__fill" id="progressFill"></div>
+      </div>
       <header class="appbar">
         <div class="brand">
           <svg class="logo" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -30,6 +42,13 @@
             <path d="M8 21h8M12 17v4" />
           </svg>
         </button>
+        <button class="iconbtn" id="btnHelp" title="Ayuda / atajos (?)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
+            <circle cx="12" cy="12" r="9" />
+            <path d="M9.2 9.2a2.8 2.8 0 0 1 5.4 1c0 1.8-2.6 2-2.6 3.8" />
+            <circle cx="12" cy="17.4" r="0.6" fill="currentColor" />
+          </svg>
+        </button>
         <button class="iconbtn" id="btnSettings" title="Ajustes">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">
             <circle cx="12" cy="12" r="3" />
@@ -39,6 +58,19 @@
           </svg>
         </button>
         <span class="chip" id="backendChip">C++ · Eigen3 · ZeroMQ</span>
+        <span class="chip verified" id="verifiedChip" hidden>
+          <svg
+            viewBox="0 0 24 24"
+            width="13"
+            height="13"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+          >
+            <path d="M20 6L9 17l-5-5" />
+          </svg>
+          <span id="verifiedText">Verificado vs Qiskit</span>
+        </span>
         <span class="chip"
           ><span class="led" id="engineLed"></span><span id="engineText">conectando…</span></span
         >
@@ -171,6 +203,45 @@
 
     <!-- Tooltip pedagógico global -->
     <div class="tooltip" id="tooltip" hidden></div>
+
+    <!-- Overlay de ayuda / atajos de teclado -->
+    <div class="help-overlay" id="helpOverlay" hidden>
+      <div class="help-card">
+        <div class="help-h">
+          <span>Atajos de teclado</span>
+          <button class="help-close" id="helpClose" title="Cerrar (Esc)">✕</button>
+        </div>
+        <div class="help-grid">
+          <div class="help-row"><kbd>Espacio</kbd><span>Reproducir / pausar</span></div>
+          <div class="help-row"><kbd>→</kbd><span>Paso adelante</span></div>
+          <div class="help-row"><kbd>←</kbd><span>Paso atrás</span></div>
+          <div class="help-row"><kbd>R</kbd><span>Reiniciar la línea de tiempo</span></div>
+          <div class="help-row"><kbd>F</kbd><span>Pantalla completa</span></div>
+          <div class="help-row"><kbd>?</kbd><span>Mostrar / ocultar esta ayuda</span></div>
+          <div class="help-row">
+            <kbd>Esc</kbd><span>Cerrar ayuda · salir de presentación</span>
+          </div>
+        </div>
+        <div class="help-h" style="margin-top: 6px">Ratón</div>
+        <div class="help-grid">
+          <div class="help-row"><kbd>Arrastrar</kbd><span>Rotar la cámara</span></div>
+          <div class="help-row"><kbd>Rueda</kbd><span>Acercar / alejar</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Panel de validación: evidencia completa C++ vs Qiskit (55 casos). -->
+    <div class="valid-overlay" id="validOverlay" hidden>
+      <div class="valid-card">
+        <div class="valid-h">
+          <span>Validación vs Qiskit</span>
+          <button class="valid-close" id="validClose" title="Cerrar (Esc)">✕</button>
+        </div>
+        <div class="valid-summary" id="validSummary"></div>
+        <div class="valid-body" id="validBody"></div>
+        <div class="valid-foot" id="validFoot"></div>
+      </div>
+    </div>
 
     <!-- Overlay del modo presentación -->
     <div class="present-overlay" id="presentOverlay" hidden>

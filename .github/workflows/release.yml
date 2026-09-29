@@ -67,6 +67,28 @@ jobs:
             install_name_tool -change "$lib" "@loader_path/$base" "$dst/quantum-engine" || true
           done
 
+      # ---------------- Bridge Qiskit empaquetado (validación en vivo) ----------------
+      # Best-effort: si PyInstaller falla en algún SO, el instalador se construye
+      # igual y la validación en vivo queda como "no disponible" (degradación).
+      - name: Setup Python (bridge Qiskit)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build Qiskit bridge (PyInstaller)
+        shell: bash
+        continue-on-error: true
+        run: |
+          python -m pip install --upgrade pip
+          pip install "qiskit>=1.0.0" "qiskit-aer>=0.14.0" "numpy>=1.26.0" scipy \
+            "msgpack>=1.0.7" "pyzmq>=25.0.0" pyinstaller
+          cd packages/qiskit-bridge
+          pyinstaller qiskit-bridge.spec --noconfirm --log-level WARN
+          dst="../electron-app/python-bin"
+          mkdir -p "$dst"
+          cp -r dist/qiskit-bridge/* "$dst"/
+          echo "bridge empaquetado en $dst:"; ls "$dst" | head
+
       # ---------------- App Electron + empaquetado ----------------
       - uses: actions/setup-node@v4
         with:

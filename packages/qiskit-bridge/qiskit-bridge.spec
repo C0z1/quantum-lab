@@ -7,15 +7,18 @@
 #
 # Nota: Qiskit + Aer son pesados (~cientos de MB). Este empaquetado es OPCIONAL;
 # la app funciona sin él (la validación queda deshabilitada si no está presente).
-from PyInstaller.utils.hooks import collect_all
+from PyInstaller.utils.hooks import collect_all, collect_submodules
 
 datas, binaries, hiddenimports = [], [], []
-for pkg in ("qiskit", "qiskit_aer", "numpy", "msgpack", "zmq"):
+for pkg in ("qiskit", "qiskit_aer", "numpy", "scipy", "msgpack", "zmq"):
     d, b, h = collect_all(pkg)
     datas += d; binaries += b; hiddenimports += h
 
+# Todos los algoritmos que main.py puede invocar (validación de los 6).
+hiddenimports += collect_submodules("algorithms")
 hiddenimports += [
     "algorithms.grover", "algorithms.shor", "algorithms.teleportation",
+    "algorithms.deutsch_jozsa", "algorithms.bernstein_vazirani", "algorithms.qft",
 ]
 
 a = Analysis(

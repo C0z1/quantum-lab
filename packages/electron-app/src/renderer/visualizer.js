@@ -584,9 +584,16 @@ export class QuantumVisualizer {
   }
 
   updateBarsFromFrame(frame) {
-    if (!frame || !frame.data) return;
+    if (!frame || !frame.data || !(frame.stateSize > 0)) return;
     if (frame.stateSize !== this.stateSize) this.initBars(frame.stateSize);
-    for (let i = 0; i < frame.stateSize; i++) this.targetProbs[i] = frame.data[i * 3 + 2];
+    // Defensivo: nunca leer más allá de los datos recibidos ni de las barras
+    // existentes; una prob inválida (NaN) se sanea a 0 para no propagar NaN a
+    // la geometría (una barra con escala NaN desaparece de forma permanente).
+    const n = Math.min(frame.stateSize, this.bars.length, (frame.data.length / 3) | 0);
+    for (let i = 0; i < n; i++) {
+      const p = frame.data[i * 3 + 2];
+      this.targetProbs[i] = Number.isFinite(p) ? p : 0;
+    }
   }
 
   pulse(originX = 0) {
@@ -863,6 +870,10 @@ export class QuantumVisualizer {
     if (n !== this.nBloch) return;
     for (let q = 0; q < n; q++) {
       const b = computeBloch(frame.data, frame.stateSize, q);
+      // Defensivo: un componente no finito (datos corruptos) produciría un
+      // vector/longitud NaN y el arrow desaparecería para siempre. Se ignora
+      // el qubit y conserva su dirección anterior.
+      if (!Number.isFinite(b.x) || !Number.isFinite(b.y) || !Number.isFinite(b.z)) continue;
       const v = new THREE.Vector3(b.x, b.z, b.y);
       const len = Math.min(1, v.length());
       const bq = this.blochQubits[q];

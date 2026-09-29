@@ -52,6 +52,13 @@
         "filter": [
           "**/*"
         ]
+      },
+      {
+        "from": "python-bin",
+        "to": "qiskit-bridge",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {

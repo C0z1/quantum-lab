@@ -1,0 +1,9 @@
+# Destino del bridge de Qiskit empaquetado con PyInstaller.
+#
+# En CI (release.yml) se copia aquí el contenido de
+#   packages/qiskit-bridge/dist/qiskit-bridge/
+# y electron-builder lo incluye como recurso "qiskit-bridge" del instalador,
+# habilitando la validación EN VIVO sin requerir Python en la máquina del usuario.
+#
+# Si esta carpeta queda vacía (build local sin empaquetar Python), la app
+# funciona igual: la validación en vivo se muestra como "no disponible".

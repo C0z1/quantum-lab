@@ -1,5 +1,5 @@
 // QuantumBridge: puente ZeroMQ entre el proceso Main de Electron y el motor C++.
-//   - REQ socket  -> envia comandos JSON, espera ACK (ipc:///tmp/quantum-lab-cmd)
+//   - REQ socket  -> envia comandos JSON, espera ACK (tcp://127.0.0.1:<puerto>)
 //   - SUB socket  -> recibe frames MessagePack del vector de estado (topic "statevec")
 //
 // npm install zeromq msgpackr
@@ -19,7 +19,9 @@ class QuantumBridge extends EventEmitter {
     this._streamEndpoint = endpoints.stream || DEFAULT_STREAM;
     this._req = new Request();
     this._req.receiveTimeout = 5000; // §8: ZMQ_RCVTIMEO = 5000ms
+    this._req.linger = 0; // no bloquear el cierre esperando mensajes sin entregar
     this._sub = new Subscriber();
+    this._sub.linger = 0;
     this._connected = false;
     this._running = false;
     // Cola de envíos: el socket REQ de ZeroMQ exige un ciclo send→receive por
@@ -35,8 +37,20 @@ class QuantumBridge extends EventEmitter {
     this._sub.subscribe(STREAM_TOPIC);
     this._connected = true;
     this._running = true;
-    this.emit('status', { connected: true });
+    // No anunciamos "online" aquí: connect() de ZeroMQ es optimista y tiene
+    // éxito aunque no haya ningún motor escuchando. El estado real lo decide un
+    // PING (ver setupBridge), para no mostrar "motor online" en falso.
     this._startSubscribeLoop(); // no await: corre en segundo plano
+  }
+
+  // ¿Hay un motor que responde? Un PING con el timeout normal; true si ACK.
+  async ping() {
+    try {
+      await this.sendCommand({ type: 'PING' });
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   // Envia un comando (objeto) como JSON por REQ y espera el ACK JSON.
@@ -51,9 +65,30 @@ class QuantumBridge extends EventEmitter {
   }
 
   async _sendNow(cmd) {
-    await this._req.send(JSON.stringify(cmd));
-    const [reply] = await this._req.receive();
-    return JSON.parse(reply.toString());
+    try {
+      await this._req.send(JSON.stringify(cmd));
+      const [reply] = await this._req.receive();
+      return JSON.parse(reply.toString());
+    } catch (err) {
+      // Un socket REQ que envió pero no recibió (timeout, motor caído/reiniciado)
+      // queda en estado inválido y bloquea TODOS los comandos siguientes. Lo
+      // recreamos para que el próximo comando vuelva a funcionar.
+      this._resetReqSocket();
+      throw err;
+    }
+  }
+
+  // Recrea el socket REQ conservando el endpoint (recuperación ante fallos).
+  _resetReqSocket() {
+    try {
+      this._req.close();
+    } catch {}
+    this._req = new Request();
+    this._req.receiveTimeout = 5000;
+    this._req.linger = 0;
+    try {
+      if (this._connected) this._req.connect(this._cmdEndpoint);
+    } catch {}
   }
 
   // Bucle de recepcion de frames del socket SUB.

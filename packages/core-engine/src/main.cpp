@@ -5,9 +5,11 @@
 #include <string>
 
 // Entry point del motor cuantico C++.
-// Arranca el servidor ZeroMQ (REP + PUB). Endpoints configurables por env vars:
-//   QL_CMD_ENDPOINT    (default ipc:///tmp/quantum-lab-cmd)
-//   QL_STREAM_ENDPOINT (default ipc:///tmp/quantum-lab-stream)
+// Arranca el servidor ZeroMQ (REP + PUB). Endpoints configurables por env vars
+// (TCP por defecto para funcionar igual en Windows/macOS/Linux; la app siempre
+// los fija a puertos locales libres):
+//   QL_CMD_ENDPOINT    (default tcp://127.0.0.1:5770)
+//   QL_STREAM_ENDPOINT (default tcp://127.0.0.1:5771)
 
 static ZmqServer* g_server = nullptr;
 

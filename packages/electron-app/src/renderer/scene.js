@@ -12,6 +12,17 @@ const ui = new UIController({
   onTab: (algo, params) => configureFor(algo, params),
   onReset: () => resetRun(),
   onRun: (algo, params) => runAlgorithm(algo, params),
+  // Validación en vivo: envía las probabilidades del motor C++ del run actual
+  // (frame final) para compararlas con Qiskit sobre estos mismos parámetros.
+  onValidateLive: async () => {
+    const f = state.buffer[state.buffer.length - 1];
+    if (!f || !f.data || !(f.stateSize > 0)) {
+      return { ok: false, error: 'ejecuta el algoritmo antes de validar' };
+    }
+    const probs = [];
+    for (let i = 0; i < f.stateSize; i++) probs.push(f.data[i * 3 + 2]);
+    return window.quantumAPI.validateLive({ algo: state.algo, params: state.params, probs });
+  },
   onPlay: () => togglePlay(),
   onStep: () => stepBy(1),
   onRestart: () => setCursor(0, false),
@@ -185,8 +196,20 @@ function configureFor(algo, params) {
   state.frames = 0;
   state.fidelity = null;
   state.series = [];
+  // Tamaño esperado del vector de estado para este run. Sirve de guarda: un
+  // frame de otro tamaño es un rezagado de un algoritmo/parámetros anteriores
+  // (p. ej. al reejecutar o cambiar de algoritmo a medio stream) y se descarta
+  // antes de tocar geometría inicializada para otra dimensión. Shor define su
+  // registro en el motor -> sin guarda de tamaño (null).
+  state.expectSize =
+    algo === 'grover' || algo === 'dj' || algo === 'bv' || algo === 'qft'
+      ? 1 << params.nQubits
+      : algo === 'teleport'
+        ? 8
+        : null;
   chart.clear();
   ui.setStateTable([]);
+  ui.setProgress(0);
   ui.setStatus({ frames: 0, dt: '—' });
   ui.setLegend(LEGEND[algo]);
   ui.showPlayback(false);
@@ -365,6 +388,8 @@ function setCursor(idx, forward) {
   state.cursor = idx;
   showFrame(idx, forward && advanced);
   ui.setPlayback({ cursor: idx });
+  const total = state.buffer.length;
+  ui.setProgress(total > 1 ? idx / (total - 1) : total === 1 ? 1 : 0);
 }
 
 function stepBy(d) {
@@ -530,6 +555,29 @@ function updatePills(step) {
 })();
 
 window.quantumAPI.onStateUpdate((frame) => {
+  // Guarda de robustez ante frames que no pertenecen al run vigente
+  // (reejecución, cambio de algoritmo o de parámetros a medio stream):
+  //
+  // 1) Guarda de layout: descarta frames cuyo tamaño no coincide con el
+  //    esperado. Evita renders con datos de otra dimensión y posibles crashes.
+  if (
+    state.expectSize &&
+    Number.isFinite(frame.stateSize) &&
+    frame.stateSize !== state.expectSize
+  ) {
+    return;
+  }
+  // 2) Frame inicial (iteration 0) que llega con contenido previo => es el
+  //    arranque de un run nuevo: descarta cualquier rezago y re-arma el buffer.
+  if (frame.iteration === 0 && (state.buffer.length || state.runFinal)) {
+    state.buffer = [];
+    state.cursor = -1;
+    state.runFinal = false;
+    state.frames = 0;
+  }
+  // 3) Guarda post-final: ignora frames que lleguen tras el frame final.
+  if (state.runFinal) return;
+
   state.buffer.push(frame);
   if (frame.isFinal) state.runFinal = true;
   state.frames++;
@@ -578,10 +626,25 @@ window.addEventListener('keydown', (e) => {
     stepBy(-1);
   } else if (e.key === 'r' || e.key === 'R') {
     setCursor(0, false);
-  } else if (e.key === 'Escape' && state.presenting) {
-    stopPresent();
+  } else if (e.key === 'f' || e.key === 'F') {
+    toggleFullscreen();
+  } else if (e.key === '?' || e.key === 'h' || e.key === 'H') {
+    ui.toggleHelp();
+  } else if (e.key === 'Escape') {
+    if (ui.isValidationOpen && ui.isValidationOpen()) ui.toggleValidation(false);
+    else if (ui.isHelpOpen && ui.isHelpOpen()) ui.toggleHelp(false);
+    else if (state.presenting) stopPresent();
   }
 });
+
+function toggleFullscreen() {
+  if (document.fullscreenElement) {
+    if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+  } else if (document.documentElement.requestFullscreen) {
+    document.documentElement.requestFullscreen().catch(() => {});
+  }
+  setTimeout(() => window.dispatchEvent(new Event('resize')), 150);
+}
 
 // ---------------- modo presentación ----------------
 const PRESENT_ORDER = ['grover', 'teleport', 'shor', 'dj', 'bv', 'qft'];
@@ -653,3 +716,11 @@ document.addEventListener('fullscreenchange', () => {
 // Estado inicial.
 configureFor('grover', ui.getParams());
 ui.log('interfaz inicializada · Espacio: play/pausa · →/←: paso', '');
+
+// Hook de depuración de solo lectura (usado por pruebas headless y diagnóstico
+// en campo). No expone controles, solo una vista del estado interno.
+window.__qlDebug = {
+  get state() {
+    return state;
+  },
+};

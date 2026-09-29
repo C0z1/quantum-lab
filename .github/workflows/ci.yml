@@ -68,3 +68,36 @@ jobs:
       - name: ESLint (advisory)
         working-directory: packages/electron-app
         run: npx eslint src || true
+
+  smoke:
+    name: App · pruebas de humo (headless)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Motor C++ (necesario para el arnés de estrés con el motor arriba).
+      - name: Deps del motor + build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake pkg-config \
+            libeigen3-dev libzmq3-dev cppzmq-dev libmsgpack-dev nlohmann-json3-dev
+          cmake -B build -S packages/core-engine -DCMAKE_BUILD_TYPE=Release
+          cmake --build build -j$(nproc) --target quantum-engine
+          # El resolvedor busca en packages/core-engine/build/quantum-engine.
+          mkdir -p packages/core-engine/build
+          cp build/quantum-engine packages/core-engine/build/ 2>/dev/null || true
+      # Librerías para Electron + WebGL por software (SwiftShader) bajo Xvfb.
+      - name: Deps de Electron headless
+        run: |
+          sudo apt-get install -y xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 \
+            libcups2 libdrm2 libgbm1 libasound2t64 libgtk-3-0 libxshmfence1 \
+            libgl1 libegl1 || sudo apt-get install -y xvfb libnss3 libgbm1 libgl1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install + bundle
+        working-directory: packages/electron-app
+        run: |
+          npm install --no-audit --no-fund
+          npm run bundle
+      - name: Smoke (estrés + degradación sin motor)
+        run: bash scripts/smoke_test.sh

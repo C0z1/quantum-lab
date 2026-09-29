@@ -10,6 +10,8 @@ contextBridge.exposeInMainWorld('quantumAPI', {
   runBernsteinVazirani: (params) => ipcRenderer.invoke('quantum:run-bv', params),
   runQFT: (params) => ipcRenderer.invoke('quantum:run-qft', params),
   stopExecution: () => ipcRenderer.invoke('quantum:stop'),
+  // Validación en vivo del run actual contra Qiskit.
+  validateLive: (payload) => ipcRenderer.invoke('quantum:validate-live', payload),
 
   // Suscripcion a frames del vector de estado
   onStateUpdate: (cb) => ipcRenderer.on('quantum:state-update', (_e, frame) => cb(frame)),

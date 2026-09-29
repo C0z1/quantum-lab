@@ -1,0 +1,283 @@
+{
+  "generatedAt": "2026-09-24",
+  "reference": "Qiskit Aer 2.5.2",
+  "tolerance": 1e-09,
+  "overallMaxDelta": 1.9539925233402755e-14,
+  "pass": true,
+  "algos": {
+    "grover": {
+      "name": "Grover",
+      "cases": 3,
+      "maxDelta": 1.1102230246251565e-15,
+      "tolerance": 1e-09,
+      "pass": true,
+      "detail": [
+        {
+          "label": "n=2, objetivo=3, iter=1",
+          "delta": 8.881784197001252e-16
+        },
+        {
+          "label": "n=3, objetivo=5, iter=2",
+          "delta": 4.440892098500626e-16
+        },
+        {
+          "label": "n=4, objetivo=7, iter=3",
+          "delta": 1.1102230246251565e-15
+        }
+      ]
+    },
+    "teleport": {
+      "name": "Teletransportación",
+      "cases": 3,
+      "maxDelta": 1.942890293094024e-16,
+      "tolerance": 1e-09,
+      "pass": true,
+      "detail": [
+        {
+          "label": "θ=1.05, φ=0.785",
+          "delta": 5.551115123125783e-17
+        },
+        {
+          "label": "θ=2.3, φ=-1.4",
+          "delta": 1.942890293094024e-16
+        },
+        {
+          "label": "θ=0.6, φ=2.1",
+          "delta": 1.3877787807814457e-16
+        }
+      ]
+    },
+    "shor": {
+      "name": "Shor",
+      "cases": 3,
+      "maxDelta": 1.9539925233402755e-14,
+      "tolerance": 1e-09,
+      "pass": true,
+      "detail": [
+        {
+          "label": "N=15, a=7",
+          "delta": 7.549516567451064e-15
+        },
+        {
+          "label": "N=15, a=2",
+          "delta": 4.218847493575595e-15
+        },
+        {
+          "label": "N=21, a=2",
+          "delta": 1.9539925233402755e-14
+        }
+      ]
+    },
+    "dj": {
+      "name": "Deutsch-Jozsa",
+      "cases": 10,
+      "maxDelta": 2.220446049250313e-15,
+      "tolerance": 1e-09,
+      "pass": true,
+      "detail": [
+        {
+          "label": "n=1, constante",
+          "delta": 8.881784197001252e-16
+        },
+        {
+          "label": "n=1, balanceada",
+          "delta": 8.881784197001252e-16
+        },
+        {
+          "label": "n=2, constante",
+          "delta": 1.2212453270876722e-15
+        },
+        {
+          "label": "n=2, balanceada",
+          "delta": 1.2212453270876722e-15
+        },
+        {
+          "label": "n=3, constante",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, balanceada",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=4, constante",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, balanceada",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=5, constante",
+          "delta": 2.220446049250313e-15
+        },
+        {
+          "label": "n=5, balanceada",
+          "delta": 2.220446049250313e-15
+        }
+      ]
+    },
+    "bv": {
+      "name": "Bernstein-Vazirani",
+      "cases": 30,
+      "maxDelta": 1.887379141862766e-15,
+      "tolerance": 1e-09,
+      "pass": true,
+      "detail": [
+        {
+          "label": "n=1, a=0",
+          "delta": 8.881784197001252e-16
+        },
+        {
+          "label": "n=1, a=1",
+          "delta": 8.881784197001252e-16
+        },
+        {
+          "label": "n=2, a=00",
+          "delta": 1.2212453270876722e-15
+        },
+        {
+          "label": "n=2, a=01",
+          "delta": 1.2212453270876722e-15
+        },
+        {
+          "label": "n=2, a=10",
+          "delta": 1.2212453270876722e-15
+        },
+        {
+          "label": "n=2, a=11",
+          "delta": 1.2212453270876722e-15
+        },
+        {
+          "label": "n=3, a=000",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=001",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=010",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=011",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=100",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=101",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=110",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=3, a=111",
+          "delta": 1.5543122344752192e-15
+        },
+        {
+          "label": "n=4, a=0000",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0001",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0010",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0011",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0100",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0101",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0110",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=0111",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1000",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1001",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1010",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1011",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1100",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1101",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1110",
+          "delta": 1.887379141862766e-15
+        },
+        {
+          "label": "n=4, a=1111",
+          "delta": 1.887379141862766e-15
+        }
+      ]
+    },
+    "qft": {
+      "name": "QFT",
+      "cases": 6,
+      "maxDelta": 1.7763568394002505e-15,
+      "tolerance": 1e-09,
+      "pass": true,
+      "detail": [
+        {
+          "label": "n=2, m=1",
+          "delta": 4.440892098500626e-16
+        },
+        {
+          "label": "n=3, m=1",
+          "delta": 6.106226635438361e-16
+        },
+        {
+          "label": "n=4, m=2",
+          "delta": 3.3306690738754696e-16
+        },
+        {
+          "label": "n=4, m=3",
+          "delta": 1.5265566588595902e-16
+        },
+        {
+          "label": "n=4, m=0",
+          "delta": 1.7763568394002505e-15
+        },
+        {
+          "label": "n=5, m=2",
+          "delta": 4.440892098500626e-16
+        }
+      ]
+    }
+  }
+}

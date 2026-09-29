@@ -27,3 +27,7 @@ packages/electron-app/engine-bin/*
 # OS
 .DS_Store
 Thumbs.db
+
+# Bundle de PyInstaller copiado en CI (no versionar su contenido)
+packages/electron-app/python-bin/*
+!packages/electron-app/python-bin/.gitkeep

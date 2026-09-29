@@ -9,9 +9,10 @@
 //   - REP socket (cmd):    recibe comandos JSON, responde ACK inmediato (§10).
 //   - PUB socket (stream): publica frames del vector de estado (MessagePack).
 //
-// Endpoints por defecto (§2):
-//   cmd    -> ipc:///tmp/quantum-lab-cmd
-//   stream -> ipc:///tmp/quantum-lab-stream
+// Endpoints por defecto (TCP local, multiplataforma; la app inyecta puertos
+// libres por env):
+//   cmd    -> tcp://127.0.0.1:5770
+//   stream -> tcp://127.0.0.1:5771
 class ZmqServer {
   public:
     ZmqServer(std::string cmd_endpoint, std::string stream_endpoint);
